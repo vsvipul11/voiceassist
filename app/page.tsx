@@ -11,6 +11,23 @@ import MicToggleButton from './components/MicToggleButton';
 import { PhoneOffIcon } from 'lucide-react';
 import ConsultationDetails from './components/OrderDetails';
 
+interface Symptom {
+  symptom: string;
+  duration: string;
+  severity: string;
+}
+
+interface Appointment {
+  date: string;
+  time: string;
+}
+
+interface ConsultationData {
+  symptoms: Symptom[];
+  assessmentStatus: string;
+  appointment?: Appointment;
+}
+
 interface SearchParamsProps {
   showMuteSpeakerButton: boolean;
   modelOverride?: string;
@@ -43,10 +60,15 @@ const SearchParamsHandler: React.FC<SearchParamsHandlerProps> = ({ children }) =
 
 const Home: React.FC = () => {
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
-  const [agentStatus, setAgentStatus] = useState<string>('off');
+  const [agentStatus, setAgentStatus] = useState<string>('Not Connected');
   const [callTranscript, setCallTranscript] = useState<Transcript[] | null>([]);
   const [callDebugMessages, setCallDebugMessages] = useState<UltravoxExperimentalMessageEvent[]>([]);
   const [customerProfileKey, setCustomerProfileKey] = useState<string | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
+  const [consultationData, setConsultationData] = useState<ConsultationData>({
+    symptoms: [],
+    assessmentStatus: 'Not started'
+  });
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -55,9 +77,37 @@ const Home: React.FC = () => {
     }
   }, [callTranscript, callDebugMessages]);
 
+  useEffect(() => {
+    if (callDebugMessages.length > 0) {
+      setLastUpdateTime(new Date().toLocaleTimeString());
+      
+      const latestMessage = callDebugMessages[callDebugMessages.length - 1].message.message;
+      
+      if (latestMessage.includes('Tool calls:')) {
+        try {
+          // Extract the JSON string from the message
+          const jsonStart = latestMessage.indexOf('{');
+          const jsonEnd = latestMessage.lastIndexOf('}') + 1;
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const jsonStr = latestMessage.slice(jsonStart, jsonEnd);
+            const data = JSON.parse(jsonStr);
+            
+            if (data.consultationData) {
+              console.log('Updating consultation data:', data.consultationData);
+              setConsultationData(data.consultationData);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing consultation data:', error);
+        }
+      }
+    }
+  }, [callDebugMessages]);
+
   const handleStatusChange = useCallback((status: UltravoxSessionStatus | string | undefined) => {
     if(status) {
       setAgentStatus(status);
+      setLastUpdateTime(new Date().toLocaleTimeString());
     } else {
       setAgentStatus('Not Connected');
     }
@@ -66,16 +116,28 @@ const Home: React.FC = () => {
   const handleTranscriptChange = useCallback((transcripts: Transcript[] | undefined) => {
     if(transcripts) {
       setCallTranscript([...transcripts]);
+      setLastUpdateTime(new Date().toLocaleTimeString());
     }
   }, []);
 
   const handleDebugMessage = useCallback((debugMessage: UltravoxExperimentalMessageEvent) => {
     setCallDebugMessages(prevMessages => [...prevMessages, debugMessage]);
+    setLastUpdateTime(new Date().toLocaleTimeString());
   }, []);
 
   const clearCustomerProfile = useCallback(() => {
     setCustomerProfileKey(prev => prev ? `${prev}-cleared` : 'cleared');
+    setConsultationData({
+      symptoms: [],
+      assessmentStatus: 'Not started'
+    });
   }, []);
+
+  const getCallStatus = () => {
+    if (!isCallActive) return 'Not started';
+    if (agentStatus === 'Call started successfully') return 'In progress';
+    return agentStatus;
+  };
 
   const handleStartCallButtonClick = async (modelOverride?: string, showDebugMessages?: boolean) => {
     try {
@@ -185,7 +247,7 @@ const Home: React.FC = () => {
                               key={index} 
                               className="text-sm text-gray-600 py-2 font-mono"
                             >
-                              {msg.message.message}
+                              {msg.message.message.replace("LLM response:", "Dr. Riya:")}
                             </div>
                           ))}
                         </div>
@@ -214,17 +276,43 @@ const Home: React.FC = () => {
                         <div className="space-y-4">
                           <div>
                             <h3 className="text-red-500 font-medium">Status</h3>
-                            <p className="bg-red-50 p-2 mt-1">Not started</p>
+                            <p className="bg-red-50 p-2 mt-1">{getCallStatus()}</p>
                           </div>
                           
                           <div className="text-sm text-gray-500">
-                            Last update: {new Date().toLocaleTimeString()}
+                            Last update: {lastUpdateTime || 'Not started'}
                           </div>
                           
                           <div>
                             <h3 className="text-red-500 font-medium">Reported Symptoms</h3>
-                            <p className="text-gray-500 italic">No symptoms reported yet</p>
+                            {consultationData.symptoms && consultationData.symptoms.length > 0 ? (
+                              <div className="mt-2 space-y-3">
+                                {consultationData.symptoms.map((symptom, index) => (
+                                  <div key={index} className="bg-red-50 p-3 rounded">
+                                    <span className="font-medium text-gray-900">{symptom.symptom}</span>
+                                    <div className="mt-1 text-sm text-gray-600">
+                                      <div>Duration: {symptom.duration}</div>
+                                      <div>Severity: {symptom.severity}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-gray-500 italic mt-1">No symptoms reported yet</p>
+                            )}
                           </div>
+
+                          {consultationData.appointment && (
+                            <div className="mt-4">
+                              <h3 className="text-red-500 font-medium mb-2">Scheduled Video Consultation</h3>
+                              <div className="bg-red-50 p-3 rounded">
+                                <div className="text-gray-600">
+                                  <div><span className="font-medium">Date:</span> {consultationData.appointment.date}</div>
+                                  <div><span className="font-medium">Time:</span> {consultationData.appointment.time}</div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
