@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import Image from 'next/image';
+import Script from 'next/script'; // Import Next.js Script component
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Cadabams Consult",
   description: "Mental health consultation and assessment platform by Cadabams.",
+  // Add additional meta tags for security
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  // Prevent Google from translating the page
+  'google': 'notranslate',
 };
 
 export default function RootLayout({
@@ -13,16 +18,50 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="notranslate">
       <head>
+        {/* Google Identity Services - Load this first */}
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="beforeInteractive"
+          id="google-gsi"
+        />
+        
+        {/* Google API Client Library */}
+        <Script
+          src="https://apis.google.com/js/api.js"
+          strategy="afterInteractive"
+          id="google-api"
+        />
 
+        {/* Google Sign-In Client ID Meta Tag */}
+        <meta 
+          name="google-signin-client_id" 
+          content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID} 
+        />
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://apis.google.com/js/api.js"></script>
-      <meta name="google-signin-client_id" content="580586315642-nasd4lpvavcl8s8bg725tcbcg1e9sjpv.apps.googleusercontent.com" />
-        {/* <!-- Fathom - beautiful, simple website analytics --> */}
-        <script src="https://cdn.usefathom.com/script.js" data-site="ONYOCTXK" defer></script>
-        {/* <!-- / Fathom --> */}
+        {/* Fathom Analytics with proper attributes */}
+        <Script
+          src="https://cdn.usefathom.com/script.js"
+          data-site="ONYOCTXK"
+          strategy="afterInteractive"
+          id="fathom-analytics"
+        />
+
+        {/* Add security headers */}
+        <meta
+          httpEquiv="Content-Security-Policy"
+          content={`
+            default-src 'self';
+            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://cdn.usefathom.com https://www.gstatic.com;
+            style-src 'self' 'unsafe-inline';
+            img-src 'self' data: https: blob: https://cdn.prod.website-files.com;
+            frame-src 'self' https://accounts.google.com https://content.googleapis.com;
+            connect-src 'self' https://accounts.google.com https://apis.google.com https://content.googleapis.com https://www.googleapis.com https://cdn.usefathom.com;
+            font-src 'self' data:;
+            object-src 'none';
+          `.replace(/\s+/g, ' ').trim()}
+        />
       </head>
       <body className="bg-white text-gray-800">
         {/* Header with gradient border bottom */}
@@ -34,17 +73,20 @@ export default function RootLayout({
               width={180}
               height={50}
               priority={true}
+              unoptimized={false} // Enable image optimization
             />
             <div className="flex gap-4">
               <a 
                 href="tel:+918025273377" 
-                className="hidden md:flex items-center text-red-600 hover:text-red-700"
+                className="hidden md:flex items-center text-red-600 hover:text-red-700 transition-colors duration-200"
+                rel="noopener"
               >
                 <svg 
                   className="w-4 h-4 mr-2" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path 
                     strokeLinecap="round" 
@@ -58,6 +100,7 @@ export default function RootLayout({
               <a
                 href="mailto:enquiry@cadabamshospitals.com"
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors duration-200"
+                rel="noopener"
               >
                 Contact Us
               </a>
@@ -73,7 +116,7 @@ export default function RootLayout({
         {/* Footer */}
         <footer className="bg-gray-50 border-t border-gray-200 mt-8">
           <div className="max-w-[1206px] mx-auto px-4 py-6 text-sm text-gray-600">
-            © 2025 Cadabams Hospitals. All rights reserved.
+            © {new Date().getFullYear()} Cadabams Hospitals. All rights reserved.
           </div>
         </footer>
       </body>
