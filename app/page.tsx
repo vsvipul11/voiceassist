@@ -60,6 +60,7 @@ const SearchParamsHandler: React.FC<SearchParamsHandlerProps> = ({ children }) =
 
 const Home: React.FC = () => {
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
+  const [isCallStarting, setIsCallStarting] = useState<boolean>(false);
   const [agentStatus, setAgentStatus] = useState<string>('Not Connected');
   const [callTranscript, setCallTranscript] = useState<Transcript[] | null>([]);
   const [callDebugMessages, setCallDebugMessages] = useState<UltravoxExperimentalMessageEvent[]>([]);
@@ -85,7 +86,6 @@ const Home: React.FC = () => {
       
       if (latestMessage.includes('Tool calls:')) {
         try {
-          // Extract the JSON string from the message
           const jsonStart = latestMessage.indexOf('{');
           const jsonEnd = latestMessage.lastIndexOf('}') + 1;
           if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -127,10 +127,6 @@ const Home: React.FC = () => {
 
   const clearCustomerProfile = useCallback(() => {
     setCustomerProfileKey(prev => prev ? `${prev}-cleared` : 'cleared');
-    setConsultationData({
-      symptoms: [],
-      assessmentStatus: 'Not started'
-    });
   }, []);
 
   const getCallStatus = () => {
@@ -140,7 +136,10 @@ const Home: React.FC = () => {
   };
 
   const handleStartCallButtonClick = async (modelOverride?: string, showDebugMessages?: boolean) => {
+    if (isCallStarting || isCallActive) return;
+    
     try {
+      setIsCallStarting(true);
       handleStatusChange('Starting call...');
       setCallTranscript(null);
       setCallDebugMessages([]);
@@ -182,6 +181,8 @@ const Home: React.FC = () => {
       handleStatusChange('Call started successfully');
     } catch (error) {
       handleStatusChange(`Error starting call: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsCallStarting(false);
     }
   };
 
@@ -193,6 +194,8 @@ const Home: React.FC = () => {
       clearCustomerProfile();
       setCustomerProfileKey(null);
       handleStatusChange('Call ended successfully');
+      // Note: We're not clearing consultationData here anymore
+      // We're also keeping callDebugMessages intact
     } catch (error) {
       handleStatusChange(`Error ending call: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -253,10 +256,11 @@ const Home: React.FC = () => {
                         </div>
                         <button
                           type="button"
-                          className="w-full mt-4 h-10 bg-blue-500 text-white"
+                          className="w-full mt-4 h-10 bg-blue-500 text-white disabled:bg-gray-400"
                           onClick={() => handleStartCallButtonClick(modelOverride, showDebugMessages)}
+                          disabled={isCallStarting}
                         >
-                          Start Call
+                          {isCallStarting ? 'Starting Call...' : 'Start Call'}
                         </button>
                       </div>
                     )}
