@@ -1,6 +1,7 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import Image from 'next/image';
-import Script from 'next/script';
+import { ScriptLoader } from '@/components/ScriptLoader';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,62 +17,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Load Google APIs with proper error handling */}
-        <Script
-          src="https://accounts.google.com/gsi/client"
-          strategy="beforeInteractive"
-          onError={(e) => {
-            console.error('Error loading Google Identity Services:', e);
-          }}
-          onLoad={() => {
-            console.log('Google Identity Services loaded');
-          }}
-        />
-        
-        <Script
-          src="https://apis.google.com/js/api.js"
-          strategy="beforeInteractive"
-          onError={(e) => {
-            console.error('Error loading Google API Client:', e);
-          }}
-          onLoad={() => {
-            console.log('Google API Client loaded');
-            // Initialize APIs when loaded
-            window.dispatchEvent(new Event('googleAPIsLoaded'));
-          }}
-        />
-
-        {/* Initialize Google APIs */}
-        <Script id="google-init" strategy="afterInteractive">
-          {`
-            function initGoogleAPIs() {
-              if (window.gapi && window.google) {
-                console.log('Google APIs available');
-                window.dispatchEvent(new Event('googleAPIsLoaded'));
-              } else {
-                console.log('Waiting for Google APIs...');
-                setTimeout(initGoogleAPIs, 100);
-              }
-            }
-            
-            window.addEventListener('load', initGoogleAPIs);
-          `}
-        </Script>
-
         <meta
           name="google-signin-client_id"
           content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
         />
-        
-        {/* Fathom Analytics */}
-        <Script
-          src="https://cdn.usefathom.com/script.js"
-          data-site="ONYOCTXK"
-          strategy="afterInteractive"
-          defer
-        />
       </head>
       <body className="bg-white text-gray-800">
+        <ScriptLoader />
         {/* Header with gradient border bottom */}
         <div className="border-b-4 border-red-500 bg-white shadow-sm">
           <div className="flex mx-auto justify-between items-center px-4 py-3 max-w-[1206px]">
@@ -81,7 +33,7 @@ export default function RootLayout({
               width={180}
               height={50}
               priority={true}
-              unoptimized={false} // Enable image optimization
+              unoptimized={false}
             />
             <div className="flex gap-4">
               <a 
