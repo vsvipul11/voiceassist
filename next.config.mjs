@@ -31,8 +31,7 @@ const nextConfig = {
               "worker-src 'self' blob:;",
               "form-action 'self' https://accounts.google.com;",
               "base-uri 'self';",
-              "object-src 'none';",
-              "upgrade-insecure-requests;"
+              "object-src 'none';"
             ].join(' ')
           }
         ]
