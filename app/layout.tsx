@@ -1,7 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import Image from 'next/image';
-import { ScriptLoader } from '@/components/ScriptLoader';
+import { ScriptLoader } from './components/ScriptLoader';
 import "./globals.css";
 
 export const metadata: Metadata = {
