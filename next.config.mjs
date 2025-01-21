@@ -7,17 +7,6 @@ const nextConfig = {
         hostname: 'cdn.prod.website-files.com',
         pathname: '/**',
       },
-      // Adding common image hosting domains that might be useful
-      {
-        protocol: 'https',
-        hostname: 'accounts.google.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'apis.google.com',
-        pathname: '/**',
-      },
     ],
   },
   typescript: {
@@ -31,17 +20,23 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
-              "style-src 'self' 'unsafe-inline' https://accounts.google.com",
-              "img-src 'self' data: https: blob:",
-              "frame-src 'self' https://accounts.google.com",
-              "connect-src 'self' https://accounts.google.com https://apis.google.com",
-            ].join('; '),
+              "default-src 'self';",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://cdn.usefathom.com https://www.gstatic.com;",
+              "style-src 'self' 'unsafe-inline' https://accounts.google.com https://www.gstatic.com;",
+              "img-src 'self' data: https: blob:;",
+              "frame-src 'self' https://accounts.google.com https://content.googleapis.com;",
+              "connect-src 'self' https://accounts.google.com https://apis.google.com https://content.googleapis.com https://www.googleapis.com;",
+              "font-src 'self' https://fonts.gstatic.com;",
+              "media-src 'self' blob:;",
+              "worker-src 'self' blob:;",
+              "form-action 'self' https://accounts.google.com;",
+              "base-uri 'self';",
+              "object-src 'none';"
+            ].join(' '),
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           {
             key: 'X-Content-Type-Options',
@@ -53,34 +48,17 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
-          },
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          }
         ],
       },
     ];
   },
-  // Adding additional security configurations
-  poweredByHeader: false, // Remove X-Powered-By header
+  // Optimization configurations
+  poweredByHeader: false,
   reactStrictMode: true,
-  // Optimize production builds
   swcMinify: true,
-  // Enable compression
   compress: true,
-  // Configure redirects if needed
-  async redirects() {
-    return [];
-  },
-  // Configure rewrites if needed
-  async rewrites() {
-    return [];
-  },
-  // Enable experimental features if needed
-  experimental: {
-    // Enable React Server Components
-    serverComponents: true,
-    // Enable concurrent features
-    concurrentFeatures: true,
-  },
 };
 
 export default nextConfig;
