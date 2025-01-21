@@ -11,6 +11,7 @@ import { PhoneOffIcon } from 'lucide-react';
 import { GoogleCalendarService } from '@/lib/GoogleCalendarService';
 import MicToggleButton from './components/MicToggleButton';
 import { CalendarEventHandler } from './components/CalendarEventHandler';
+import { GoogleAPIProvider } from './components/GoogleAPIProvider';
 
 interface Symptom {
   symptom: string;
@@ -278,6 +279,7 @@ const Home: React.FC = () => {
   };
 
   return (
+    <GoogleAPIProvider>
     <SearchParamsHandler>
       {({ showMuteSpeakerButton, modelOverride, showDebugMessages, showUserTranscripts }) => (
         <div className="flex flex-col items-center justify-center">
@@ -435,6 +437,7 @@ const Home: React.FC = () => {
           </div>
         )}
       </SearchParamsHandler>
+          </GoogleAPIProvider>
     );
   };
   
