@@ -17,8 +17,21 @@ const config: Config = {
         sans: ['ReplicaLL'],
         mono: ['ReplicaLLMono'],
       },
+      animation: {
+        'ripple': 'ripple 1.5s linear infinite',
+        'ripple-delayed': 'ripple 1.5s linear 0.5s infinite',
+        'ripple-slow': 'ripple 1.5s linear 1s infinite',
+      },
+      keyframes: {
+        ripple: {
+          '0%': { transform: 'scale(0.8)', opacity: '0.25' },
+          '50%': { transform: 'scale(1)', opacity: '0.5' },
+          '100%': { transform: 'scale(1.2)', opacity: '0' },
+        },
+      },
     },
   },
   plugins: [],
 };
+
 export default config;
