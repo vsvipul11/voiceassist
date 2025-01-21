@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
 import Image from 'next/image';
-import Script from 'next/script'; // Import Next.js Script component
+import Script from 'next/script';
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Cadabams Consult",
   description: "Mental health consultation and assessment platform by Cadabams.",
-  // Add additional meta tags for security
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
-  // Prevent Google from translating the page
-  'google': 'notranslate',
 };
 
 export default function RootLayout({
@@ -18,49 +14,61 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="notranslate">
+    <html lang="en">
       <head>
-        {/* Google Identity Services - Load this first */}
+        {/* Load Google APIs with proper error handling */}
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="beforeInteractive"
-          id="google-gsi"
+          onError={(e) => {
+            console.error('Error loading Google Identity Services:', e);
+          }}
+          onLoad={() => {
+            console.log('Google Identity Services loaded');
+          }}
         />
         
-        {/* Google API Client Library */}
         <Script
           src="https://apis.google.com/js/api.js"
-          strategy="afterInteractive"
-          id="google-api"
+          strategy="beforeInteractive"
+          onError={(e) => {
+            console.error('Error loading Google API Client:', e);
+          }}
+          onLoad={() => {
+            console.log('Google API Client loaded');
+            // Initialize APIs when loaded
+            window.dispatchEvent(new Event('googleAPIsLoaded'));
+          }}
         />
 
-        {/* Google Sign-In Client ID Meta Tag */}
-        <meta 
-          name="google-signin-client_id" 
-          content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID} 
-        />
+        {/* Initialize Google APIs */}
+        <Script id="google-init" strategy="afterInteractive">
+          {`
+            function initGoogleAPIs() {
+              if (window.gapi && window.google) {
+                console.log('Google APIs available');
+                window.dispatchEvent(new Event('googleAPIsLoaded'));
+              } else {
+                console.log('Waiting for Google APIs...');
+                setTimeout(initGoogleAPIs, 100);
+              }
+            }
+            
+            window.addEventListener('load', initGoogleAPIs);
+          `}
+        </Script>
 
-        {/* Fathom Analytics with proper attributes */}
+        <meta
+          name="google-signin-client_id"
+          content={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        />
+        
+        {/* Fathom Analytics */}
         <Script
           src="https://cdn.usefathom.com/script.js"
           data-site="ONYOCTXK"
           strategy="afterInteractive"
-          id="fathom-analytics"
-        />
-
-        {/* Add security headers */}
-        <meta
-          httpEquiv="Content-Security-Policy"
-          content={`
-            default-src 'self';
-            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://cdn.usefathom.com https://www.gstatic.com;
-            style-src 'self' 'unsafe-inline';
-            img-src 'self' data: https: blob: https://cdn.prod.website-files.com;
-            frame-src 'self' https://accounts.google.com https://content.googleapis.com;
-            connect-src 'self' https://accounts.google.com https://apis.google.com https://content.googleapis.com https://www.googleapis.com https://cdn.usefathom.com;
-            font-src 'self' data:;
-            object-src 'none';
-          `.replace(/\s+/g, ' ').trim()}
+          defer
         />
       </head>
       <body className="bg-white text-gray-800">
