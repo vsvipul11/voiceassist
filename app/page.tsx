@@ -1,7 +1,7 @@
 // src/app/page.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { startCall, endCall } from '@/lib/callFunctions';
 import { CallConfig } from '@/lib/types';
@@ -40,7 +40,8 @@ interface SearchParamsHandlerProps {
   children: (props: SearchParamsProps) => React.ReactNode;
 }
 
-const SearchParamsHandler: React.FC<SearchParamsHandlerProps> = ({ children }) => {
+// Separate client component for handling search params
+const SearchParamsContent: React.FC<SearchParamsHandlerProps> = ({ children }) => {
   const searchParams = useSearchParams();
   const showMuteSpeakerButton = searchParams.get('showSpeakerMute') === 'true';
   const showDebugMessages = searchParams.get('showDebugMessages') === 'true';
@@ -59,6 +60,20 @@ const SearchParamsHandler: React.FC<SearchParamsHandlerProps> = ({ children }) =
   });
 };
 
+const SearchParamsHandler: React.FC<SearchParamsHandlerProps> = (props) => {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center">
+        <div className="max-w-[1206px] mx-auto w-full py-5 pl-5 pr-[10px] border border-[#2A2A2A] rounded-[3px]">
+          Loading...
+        </div>
+      </div>
+    }>
+      <SearchParamsContent {...props} />
+    </Suspense>
+  );
+};
+
 const parseConsultationData = (message: string) => {
   try {
     if (message.includes('Tool calls:')) {
@@ -68,13 +83,10 @@ const parseConsultationData = (message: string) => {
         const jsonStr = message.slice(jsonStart, jsonEnd);
         const data = JSON.parse(jsonStr);
         
-        // Log the parsed data for debugging
         console.log('Parsed consultation data:', data);
         
-        // Extract the consultation data from the nested structure
         const consultationData = data.value?.consultationData || data.value || data.consultationData || data;
         
-        // Ensure the data has the expected structure
         return {
           symptoms: Array.isArray(consultationData.symptoms) ? consultationData.symptoms : [],
           assessmentStatus: consultationData.assessmentStatus || 'In Progress',
@@ -108,142 +120,80 @@ const Home: React.FC = () => {
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const calendarService = useMemo(() => GoogleCalendarService.getInstance(), []);
 
-  // Initialize Google Calendar service
-// In your Home component, update the useEffect that handles calendar events:
+  useEffect(() => {
+    const initCalendarService = async () => {
+      try {
+        await calendarService.init();
+        console.log('Google Calendar service initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize Google Calendar service:', error);
+        showNotification('Calendar service initialization failed. Some features may be limited.', 'error');
+      }
+    };
 
-useEffect(() => {
-  // Initialize Google Calendar service when component mounts
-  const initCalendarService = async () => {
-    try {
-      await calendarService.init();
-      console.log('Google Calendar service initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize Google Calendar service:', error);
-      showNotification('Calendar service initialization failed. Some features may be limited.', 'error');
+    initCalendarService();
+  }, [calendarService]);
+
+  useEffect(() => {
+    if (callDebugMessages.length > 0) {
+      const latestMessage = callDebugMessages[callDebugMessages.length - 1].message.message;
+      setLastUpdateTime(new Date().toLocaleTimeString());
+
+      const parsedData = parseConsultationData(latestMessage);
+      if (parsedData) {
+        console.log('Updating consultation data:', parsedData);
+        
+        setConsultationData(prevData => {
+          const newData = {
+            ...prevData,
+            symptoms: parsedData.symptoms || prevData.symptoms,
+            assessmentStatus: parsedData.assessmentStatus || prevData.assessmentStatus,
+            appointment: parsedData.appointment ? {
+              date: parsedData.appointment.date || 'TBD',
+              time: parsedData.appointment.time || 'TBD',
+              email: parsedData.appointment.email
+            } : prevData.appointment
+          };
+
+          if (newData.appointment?.date && 
+              newData.appointment?.time && 
+              newData.appointment?.email &&
+              newData.appointment.date !== 'TBD' &&
+              newData.appointment.time !== 'TBD') {
+            
+            setTimeout(() => {
+              calendarService.createEvent(
+                newData.appointment!.date,
+                newData.appointment!.time,
+                newData.appointment!.email!
+              )
+              .then(() => {
+                showNotification(
+                  'Calendar event created successfully! Check your email for the invitation.',
+                  'success'
+                );
+              })
+              .catch(error => {
+                console.error('Failed to create calendar event:', error);
+                showNotification(
+                  'Failed to create calendar event. Please try again or contact support.',
+                  'error'
+                );
+              });
+            }, 1000);
+          }
+
+          return newData;
+        });
+      }
     }
-  };
+  }, [callDebugMessages, calendarService]);
 
-  initCalendarService();
-}, [calendarService]);
-
-// Update the debug message handling effect:
-useEffect(() => {
-  if (callDebugMessages.length > 0) {
-    const latestMessage = callDebugMessages[callDebugMessages.length - 1].message.message;
-    setLastUpdateTime(new Date().toLocaleTimeString());
-
-    const parsedData = parseConsultationData(latestMessage);
-    if (parsedData) {
-      console.log('Updating consultation data:', parsedData);
-      
-      setConsultationData(prevData => {
-        const newData = {
-          ...prevData,
-          symptoms: parsedData.symptoms || prevData.symptoms,
-          assessmentStatus: parsedData.assessmentStatus || prevData.assessmentStatus,
-          appointment: parsedData.appointment ? {
-            date: parsedData.appointment.date || 'TBD',
-            time: parsedData.appointment.time || 'TBD',
-            email: parsedData.appointment.email
-          } : prevData.appointment
-        };
-
-        // Create calendar event if all required data is present
-        if (newData.appointment?.date && 
-            newData.appointment?.time && 
-            newData.appointment?.email &&
-            newData.appointment.date !== 'TBD' &&
-            newData.appointment.time !== 'TBD') {
-          
-          // Add delay to ensure calendar service is initialized
-          setTimeout(() => {
-            calendarService.createEvent(
-              newData.appointment!.date,
-              newData.appointment!.time,
-              newData.appointment!.email!
-            )
-            .then(() => {
-              showNotification(
-                'Calendar event created successfully! Check your email for the invitation.',
-                'success'
-              );
-            })
-            .catch(error => {
-              console.error('Failed to create calendar event:', error);
-              showNotification(
-                'Failed to create calendar event. Please try again or contact support.',
-                'error'
-              );
-            });
-          }, 1000); // Add a 1-second delay
-        }
-
-        return newData;
-      });
-    }
-  }
-}, [callDebugMessages, calendarService]);
-  // Auto-scroll transcript
   useEffect(() => {
     if (transcriptContainerRef.current) {
       transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
     }
   }, [callTranscript, callDebugMessages]);
-
-  // Handle debug messages and consultation data updates
-  // useEffect(() => {
-  //   if (callDebugMessages.length > 0) {
-  //     const latestMessage = callDebugMessages[callDebugMessages.length - 1].message.message;
-  //     setLastUpdateTime(new Date().toLocaleTimeString());
-
-  //     const parsedData = parseConsultationData(latestMessage);
-  //     if (parsedData) {
-  //       console.log('Updating consultation data:', parsedData);
-        
-  //       setConsultationData(prevData => {
-  //         const newData = {
-  //           ...prevData,
-  //           symptoms: parsedData.symptoms || prevData.symptoms,
-  //           assessmentStatus: parsedData.assessmentStatus || prevData.assessmentStatus,
-  //           appointment: parsedData.appointment ? {
-  //             date: parsedData.appointment.date || 'TBD',
-  //             time: parsedData.appointment.time || 'TBD',
-  //             email: parsedData.appointment.email
-  //           } : prevData.appointment
-  //         };
-
-  //         // Attempt to create calendar event if all required data is present
-  //         if (newData.appointment?.date && 
-  //             newData.appointment?.time && 
-  //             newData.appointment?.email &&
-  //             newData.appointment.date !== 'TBD' &&
-  //             newData.appointment.time !== 'TBD') {
-            
-  //           calendarService.createEvent(
-  //             newData.appointment.date,
-  //             newData.appointment.time,
-  //             newData.appointment.email
-  //           )
-  //           .then(() => {
-  //             showNotification(
-  //               'Calendar event created successfully! Check your email for the invitation.',
-  //               'success'
-  //             );
-  //           })
-  //           .catch(error => {
-  //             console.error('Failed to create calendar event:', error);
-  //             showNotification(
-  //               'Failed to create calendar event. Please try again or contact support.',
-  //               'error'
-  //             );
-  //           });
-  //         }
-
-  //         return newData;
-  //       });
-  //     }
-  //   }
-  // }, [callDebugMessages, calendarService]);
 
   const handleStatusChange = useCallback((status: UltravoxSessionStatus | string | undefined) => {
     if(status) {
@@ -425,59 +375,60 @@ useEffect(() => {
                                   </div>
                                 </div>
                               ))
-                            ) : (
-                              <p className="text-gray-500 italic">No symptoms reported yet</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {consultationData.appointment && (
-                          <div className="mt-4">
-                            <h3 className="text-red-500 font-medium mb-2">
-                              Scheduled Video Consultation
-                            </h3>
-                            <div className="bg-red-50 p-3 rounded">
-                              <div className="text-gray-600">
-                                <div>
-                                  <span className="font-medium">Date:</span> 
-                                  {consultationData.appointment.date === 'TBD' ? 
-                                    'To be decided' : 
-                                    new Date(consultationData.appointment.date).toLocaleDateString('en-US', {
-                                      weekday: 'long',
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric'
-                                    })}
-                                </div>
-                                <div>
-                                  <span className="font-medium">Time:</span> 
-                                  {consultationData.appointment.time === 'TBD' ?
-                                    'To be decided' :
-                                    new Date(`2000-01-01T${consultationData.appointment.time}`).toLocaleTimeString('en-US', {
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                      hour12: true
-                                    })}
-                                </div>
-                                {consultationData.appointment.email && (
-                                  <div>
-                                    <span className="font-medium">Email:</span> 
-                                    {consultationData.appointment.email}
-                                  </div>
-                                )}
-                                {consultationData.appointment.date !== 'TBD' && 
-                                 consultationData.appointment.time !== 'TBD' && (
-                                  <div className="mt-2 text-sm text-green-600">
-                                    <svg className="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Calendar invite sent with video consultation link
-                                  </div>
-                                )}
-                              </div>
+                              ) : (
+                                <p className="text-gray-500 italic">No symptoms reported yet</p>
+                              )}
                             </div>
                           </div>
-                        )}
+  
+                          {consultationData.appointment && (
+                            <div className="mt-4">
+                              <h3 className="text-red-500 font-medium mb-2">
+                                Scheduled Video Consultation
+                              </h3>
+                              <div className="bg-red-50 p-3 rounded">
+                                <div className="text-gray-600">
+                                  <div>
+                                    <span className="font-medium">Date:</span> 
+                                    {consultationData.appointment.date === 'TBD' ? 
+                                      'To be decided' : 
+                                      new Date(consultationData.appointment.date).toLocaleDateString('en-US', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      })}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Time:</span> 
+                                    {consultationData.appointment.time === 'TBD' ?
+                                      'To be decided' :
+                                      new Date(`2000-01-01T${consultationData.appointment.time}`).toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      })}
+                                  </div>
+                                  {consultationData.appointment.email && (
+                                    <div>
+                                      <span className="font-medium">Email:</span> 
+                                      {consultationData.appointment.email}
+                                    </div>
+                                  )}
+                                  {consultationData.appointment.date !== 'TBD' && 
+                                   consultationData.appointment.time !== 'TBD' && (
+                                    <div className="mt-2 text-sm text-green-600">
+                                      <svg className="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Calendar invite sent with video consultation link
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -485,10 +436,9 @@ useEffect(() => {
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </SearchParamsHandler>
-  );
-};
-
-export default Home;
+        )}
+      </SearchParamsHandler>
+    );
+  };
+  
+  export default Home;
