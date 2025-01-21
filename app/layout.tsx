@@ -15,6 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
       <meta name="google-signin-client_id" content="580586315642-nasd4lpvavcl8s8bg725tcbcg1e9sjpv.apps.googleusercontent.com" />
         {/* <!-- Fathom - beautiful, simple website analytics --> */}
         <script src="https://cdn.usefathom.com/script.js" data-site="ONYOCTXK" defer></script>

@@ -27,6 +27,7 @@ export const CalendarEventHandler: React.FC<CalendarEventHandlerProps> = ({
             await calendarService.createEvent(date, time, email);
             onSuccess();
         } catch (error) {
+            console.error('Calendar event creation error:', error);
             onError(error instanceof Error ? error.message : 'Failed to create calendar event');
         } finally {
             setIsCreating(false);
@@ -37,7 +38,7 @@ export const CalendarEventHandler: React.FC<CalendarEventHandlerProps> = ({
         <button
             onClick={handleCreateEvent}
             disabled={isCreating}
-            className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+            className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400 transition-colors"
         >
             {isCreating ? 'Creating event...' : 'Schedule Consultation'}
         </button>
