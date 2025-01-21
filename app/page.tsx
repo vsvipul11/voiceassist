@@ -10,8 +10,6 @@ import { Role, Transcript, UltravoxExperimentalMessageEvent, UltravoxSessionStat
 import { PhoneOffIcon } from 'lucide-react';
 import { GoogleCalendarService } from '@/lib/GoogleCalendarService';
 import MicToggleButton from './components/MicToggleButton';
-import { CalendarEventHandler } from './components/CalendarEventHandler';
-import { GoogleAPIProvider } from './components/GoogleAPIProvider';
 
 interface Symptom {
   symptom: string;
@@ -279,7 +277,6 @@ const Home: React.FC = () => {
   };
 
   return (
-    <GoogleAPIProvider>
     <SearchParamsHandler>
       {({ showMuteSpeakerButton, modelOverride, showDebugMessages, showUserTranscripts }) => (
         <div className="flex flex-col items-center justify-center">
@@ -385,48 +382,52 @@ const Home: React.FC = () => {
                           </div>
   
                           {consultationData.appointment && (
-    <div className="mt-4">
-        <h3 className="text-red-500 font-medium mb-2">
-            Scheduled Video Consultation
-        </h3>
-        <div className="bg-red-50 p-3 rounded">
-            <div className="text-gray-600">
-                <div>
-                    <span className="font-medium">Date:</span> 
-                    {consultationData.appointment.date}
-                </div>
-                <div>
-                    <span className="font-medium">Time:</span> 
-                    {consultationData.appointment.time}
-                </div>
-                {consultationData.appointment.email && (
-                    <div>
-                        <span className="font-medium">Email:</span> 
-                        {consultationData.appointment.email}
-                    </div>
-                )}
-                
-                <CalendarEventHandler
-                    date={consultationData.appointment.date}
-                    time={consultationData.appointment.time}
-                    email={consultationData.appointment.email || ''}
-                    onSuccess={() => {
-                        showNotification(
-                            'Calendar event created successfully! Check your email for the invitation.',
-                            'success'
-                        );
-                    }}
-                    onError={(error) => {
-                        showNotification(
-                            `Failed to create calendar event: ${error}`,
-                            'error'
-                        );
-                    }}
-                />
-            </div>
-        </div>
-    </div>
-)}
+                            <div className="mt-4">
+                              <h3 className="text-red-500 font-medium mb-2">
+                                Scheduled Video Consultation
+                              </h3>
+                              <div className="bg-red-50 p-3 rounded">
+                                <div className="text-gray-600">
+                                  <div>
+                                    <span className="font-medium">Date:</span> 
+                                    {consultationData.appointment.date === 'TBD' ? 
+                                      'To be decided' : 
+                                      new Date(consultationData.appointment.date).toLocaleDateString('en-US', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      })}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Time:</span> 
+                                    {consultationData.appointment.time === 'TBD' ?
+                                      'To be decided' :
+                                      new Date(`2000-01-01T${consultationData.appointment.time}`).toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      })}
+                                  </div>
+                                  {consultationData.appointment.email && (
+                                    <div>
+                                      <span className="font-medium">Email:</span> 
+                                      {consultationData.appointment.email}
+                                    </div>
+                                  )}
+                                  {consultationData.appointment.date !== 'TBD' && 
+                                   consultationData.appointment.time !== 'TBD' && (
+                                    <div className="mt-2 text-sm text-green-600">
+                                      <svg className="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Calendar invite sent with video consultation link
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -437,7 +438,6 @@ const Home: React.FC = () => {
           </div>
         )}
       </SearchParamsHandler>
-          </GoogleAPIProvider>
     );
   };
   
