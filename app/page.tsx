@@ -20,7 +20,7 @@ import { CalComService } from "@/lib/calComService";
 import MicToggleButton from "./components/MicToggleButton";
 import demoConfig from "./demo-config";
 
-// Add toast notification function to fix the undefined error
+// Add toast notification function
 const showNotification = (message: string, type: 'success' | 'error') => {
   if (type === 'error') {
     console.error(message);
@@ -28,6 +28,35 @@ const showNotification = (message: string, type: 'success' | 'error') => {
     console.log(message);
   }
   alert(message);
+};
+
+// Helper function to format date and time for Cal.com
+const formatDateTimeForCalCom = (date: string, time: string) => {
+  try {
+    // Ensure date is in YYYY-MM-DD format and time is in HH:mm format
+    const [year, month, day] = date.split('-').map(num => num.trim());
+    const [hours, minutes] = time.split(':').map(num => num.trim());
+    
+    // Create a new Date object
+    const dateObj = new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Month is 0-based
+      parseInt(day),
+      parseInt(hours),
+      parseInt(minutes)
+    );
+
+    // Validate the date
+    if (isNaN(dateObj.getTime())) {
+      throw new Error('Invalid date or time');
+    }
+
+    // Return ISO string for Cal.com
+    return dateObj.toISOString();
+  } catch (error) {
+    console.error('Error formatting date and time:', error);
+    throw new Error('Invalid date or time format');
+  }
 };
 
 // Email popup component
@@ -181,57 +210,82 @@ const Home = () => {
           ) {
             setIsBookingInProgress(true);
 
-            // Enhanced error handling for Cal.com
-            calendarService
-              .createEvent(
+            try {
+              // Validate and format date and time before sending to Cal.com
+              const formattedDateTime = formatDateTimeForCalCom(
                 newData.appointment.date,
-                newData.appointment.time,
-                userEmail,
-                "Patient"
-              )
-              .then((booking) => {
-                if (!booking) {
-                  throw new Error('No booking data received');
-                }
-                console.log("Booking created:", booking);
-                const meetingRef = booking.references?.find(
-                  (ref) => ref.type === "google_meet_video"
-                );
-                const meetingUrl = meetingRef?.meetingUrl;
+                newData.appointment.time
+              );
 
-                showNotification(
-                  `Appointment scheduled successfully!${
-                    meetingUrl ? `\nMeeting link: ${meetingUrl}` : ""
-                  }`,
-                  "success"
-                );
-              })
-              .catch((error) => {
-                console.error("Failed to schedule appointment:", error);
-                let errorMessage = "Failed to schedule appointment.";
-                
-                // Handle specific Cal.com errors
-                if (error.message?.includes("no_available_users_found_error")) {
-                  errorMessage = "No available time slots found. Please try a different time.";
-                } else if (error.message?.includes("not_found")) {
-                  errorMessage = "The selected time slot is no longer available.";
-                }
-                
-                showNotification(errorMessage, "error");
-                
-                // Reset appointment in UI on error
-                setConsultationData(prev => ({
-                  ...prev,
-                  appointment: {
-                    ...prev.appointment,
-                    date: "TBD",
-                    time: "TBD"
+              console.log('Formatted DateTime:', formattedDateTime); // Debug log
+
+              calendarService
+                .createEvent(
+                  formattedDateTime,
+                  newData.appointment.time,
+                  userEmail,
+                  "Patient"
+                )
+                .then((booking) => {
+                  if (!booking) {
+                    throw new Error('No booking data received');
                   }
-                }));
-              })
-              .finally(() => {
-                setIsBookingInProgress(false);
-              });
+                  console.log("Booking created:", booking);
+                  const meetingRef = booking.references?.find(
+                    (ref) => ref.type === "google_meet_video"
+                  );
+                  const meetingUrl = meetingRef?.meetingUrl;
+
+                  showNotification(
+                    `Appointment scheduled successfully!${
+                      meetingUrl ? `\nMeeting link: ${meetingUrl}` : ""
+                    }`,
+                    "success"
+                  );
+                })
+                .catch((error) => {
+                  console.error("Failed to schedule appointment:", error);
+                  let errorMessage = "Failed to schedule appointment.";
+                  
+                  // Handle specific errors
+                  if (error.message?.includes("Invalid date or time format")) {
+                    errorMessage = "Please provide a valid date and time.";
+                  } else if (error.message?.includes("no_available_users_found_error")) {
+                    errorMessage = "No available time slots found. Please try a different time.";
+                  } else if (error.message?.includes("not_found")) {
+                    errorMessage = "The selected time slot is no longer available.";
+                  }
+                  
+                  showNotification(errorMessage, "error");
+                  
+                  // Reset appointment in UI on error
+                  setConsultationData(prev => ({
+                    ...prev,
+                    appointment: {
+                      ...prev.appointment,
+                      date: "TBD",
+                      time: "TBD"
+                    }
+                  }));
+                })
+                .finally(() => {
+                  setIsBookingInProgress(false);
+                });
+            } catch (error) {
+              console.error("Error formatting date/time:", error);
+              showNotification("Invalid date or time format. Please try again.", "error");
+              setIsBookingInProgress(false);
+
+              // Reset appointment on format error
+              setConsultationData(prev => ({
+                ...prev,
+                appointment: {
+                  ...prev.appointment,
+                  date: "TBD",
+                  time: "TBD"
+                }
+              }));
+            }
           }
 
           return newData;
@@ -388,7 +442,7 @@ const Home = () => {
                   <h1 className="text-2xl font-bold w-full">
                     {demoConfigRef.current?.title || "Dr. Riya - Your Mental Health Triage"}
                   </h1>
-                  <div className="flex flex-col justify-between items-start h-full font-mono p-4">
+                 <div className="flex flex-col justify-between items-start h-full font-mono p-4">
                     {isCallActive ? (
                       <div className="w-full">
                         <div className="flex justify-between space-x-4 p-4 w-full">
@@ -431,7 +485,7 @@ const Home = () => {
                               showDebugMessages
                             )
                           }
-                         disabled={isCallStarting || !userEmail}
+                          disabled={isCallStarting || !userEmail}
                         >
                           {isCallStarting ? "Starting Call..." : "Start Call"}
                         </button>
