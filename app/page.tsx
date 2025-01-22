@@ -20,6 +20,16 @@ import { CalComService } from "@/lib/calComService";
 import MicToggleButton from "./components/MicToggleButton";
 import demoConfig from "./demo-config";
 
+// Add toast notification function to fix the undefined error
+const showNotification = (message: string, type: 'success' | 'error') => {
+  if (type === 'error') {
+    console.error(message);
+  } else {
+    console.log(message);
+  }
+  alert(message);
+};
+
 // Email popup component
 const EmailPopup = ({ onSubmit }) => {
   const [email, setEmail] = useState("");
@@ -157,7 +167,7 @@ const Home = () => {
               ? {
                   date: parsedData.appointment.date || "TBD",
                   time: parsedData.appointment.time || "TBD",
-                  email: userEmail, // Use stored email
+                  email: userEmail,
                 }
               : prevData.appointment,
           };
@@ -171,14 +181,18 @@ const Home = () => {
           ) {
             setIsBookingInProgress(true);
 
+            // Enhanced error handling for Cal.com
             calendarService
               .createEvent(
                 newData.appointment.date,
                 newData.appointment.time,
-                userEmail, // Use stored email
+                userEmail,
                 "Patient"
               )
               .then((booking) => {
+                if (!booking) {
+                  throw new Error('No booking data received');
+                }
                 console.log("Booking created:", booking);
                 const meetingRef = booking.references?.find(
                   (ref) => ref.type === "google_meet_video"
@@ -194,10 +208,26 @@ const Home = () => {
               })
               .catch((error) => {
                 console.error("Failed to schedule appointment:", error);
-                showNotification(
-                  "Failed to schedule appointment. Please try again.",
-                  "error"
-                );
+                let errorMessage = "Failed to schedule appointment.";
+                
+                // Handle specific Cal.com errors
+                if (error.message?.includes("no_available_users_found_error")) {
+                  errorMessage = "No available time slots found. Please try a different time.";
+                } else if (error.message?.includes("not_found")) {
+                  errorMessage = "The selected time slot is no longer available.";
+                }
+                
+                showNotification(errorMessage, "error");
+                
+                // Reset appointment in UI on error
+                setConsultationData(prev => ({
+                  ...prev,
+                  appointment: {
+                    ...prev.appointment,
+                    date: "TBD",
+                    time: "TBD"
+                  }
+                }));
               })
               .finally(() => {
                 setIsBookingInProgress(false);
@@ -401,7 +431,7 @@ const Home = () => {
                               showDebugMessages
                             )
                           }
-                          disabled={isCallStarting || !userEmail}
+                         disabled={isCallStarting || !userEmail}
                         >
                           {isCallStarting ? "Starting Call..." : "Start Call"}
                         </button>
