@@ -28,7 +28,7 @@ function getSystemPrompt(userEmail: string = '') {
   2. Discussion of Concerns:
      - Briefly inquire about mental health concerns 
      - Ask only one concise question at a time
-     - Record symptom details using updateConsultation tool after each symptom
+     - Record symptom details using updateConsultation tool after each symptom but do not say it to the user and do not repeat it 
 
   3. Appointment Booking:
      - Working Days: Monday to Saturday (no Sundays)
