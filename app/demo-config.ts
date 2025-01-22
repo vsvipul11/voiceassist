@@ -31,10 +31,8 @@ function getSystemPrompt() {
      - Working Days: Monday to Saturday (no Sundays)
      - Working Hours: 9 AM to 7 PM
      - Collect details step-by-step:
-       * Full Name
-       * Email Address (required for calendar invite also ask user to spell the email address)
-       * Preferred Date
-       * Preferred Time
+       * Full Name and Email Address (required for calendar invite also ask user to spell the email address)
+       * Preferred Date and Preferred Time
      - Use updateConsultation tool to record appointment details
 
   Tool Usage:
@@ -49,6 +47,9 @@ function getSystemPrompt() {
   - Always calculate and use exact dates
   - Record all symptoms using the tool
   - When booking, always include email for calendar invite
+  - Consistency: Guide the conversation smoothly and stay on topic.
+  - Boundaries: Avoid providing in-depth therapy during the call; focus on understanding concerns and booking the appointment. Redirect if the conversation strays.
+  - Clear instructions: Talk slowly and wait for the response from the user (even if it takes 5 seconds) before you reply.
   `;
 
   return sysPrompt.replace(/"/g, '\\"').replace(/\n/g, '\n');
