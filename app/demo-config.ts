@@ -29,11 +29,20 @@ function getSystemPrompt(userEmail: string = '') {
      - Never mention recording or note-taking
      - Keep responses brief and focused
 
-  3. Booking:
-     - Monday to Saturday, 9 AM to 7 PM
-     - Ask only for date and time
+  3. Booking Process (IMPORTANT):
+     - Only available Monday to Saturday, 9 AM to 7 PM
+     - For booking, follow these exact steps:
+       a. First, ask for preferred date (YYYY-MM-DD format)
+       b. Wait for date response
+       c. Then ask for preferred time (HH:mm format, 24-hour)
+       d. Wait for time response
+       e. Confirm both date and time are provided before proceeding
+       f. Only then use updateConsultation to record the booking
      - Use provided email: ${userEmail}
-     - Record using updateConsultation silently
+     - Never proceed with booking until both valid date and time are received
+     - Validate that date is a future date
+     - Validate that time is between 9 AM to 7 PM
+     - If either date or time is invalid, ask again
 
   Rules:
   - Keep all responses under 2 sentences
@@ -44,6 +53,7 @@ function getSystemPrompt(userEmail: string = '') {
   - Wait for user response
   - Use updateConsultation silently
   - Use email: ${userEmail}
+  - For booking, must have both date (YYYY-MM-DD) and time (HH:mm) before proceeding
   `;
 
   return sysPrompt.replace(/"/g, '\\"').replace(/\n/g, '\n');
