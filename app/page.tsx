@@ -157,7 +157,7 @@ const Home = () => {
               ? {
                   date: parsedData.appointment.date || "TBD",
                   time: parsedData.appointment.time || "TBD",
-                  email: userEmail, // Use stored email
+                  email: userEmail,
                 }
               : prevData.appointment,
           };
@@ -175,7 +175,7 @@ const Home = () => {
               .createEvent(
                 newData.appointment.date,
                 newData.appointment.time,
-                userEmail, // Use stored email
+                userEmail,
                 "Patient"
               )
               .then((booking) => {
@@ -379,19 +379,7 @@ const Home = () => {
                       </div>
                     ) : (
                       <div className="w-full">
-                        <div className="h-[300px] p-2.5 overflow-y-auto relative bg-white">
-                          {callDebugMessages.map((msg, index) => (
-                            <div
-                              key={index}
-                              className="text-sm text-gray-600 py-2 font-mono"
-                            >
-                              {msg.message.message.replace(
-                                "LLM response:",
-                                "Dr. Riya:"
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                        {/* Removed the div that displays debug messages */}
                         <button
                           type="button"
                           className="w-full mt-4 h-10 bg-blue-500 text-white disabled:bg-gray-400"
