@@ -231,6 +231,7 @@ const Home = () => {
 
   const handleDebugMessage = useCallback(
     (debugMessage: UltravoxExperimentalMessageEvent) => {
+      // Store all messages for processing data, but only display conversation messages to users
       setCallDebugMessages((prevMessages) => [...prevMessages, debugMessage]);
       setLastUpdateTime(new Date().toLocaleTimeString());
     },
@@ -379,7 +380,24 @@ const Home = () => {
                       </div>
                     ) : (
                       <div className="w-full">
-                        {/* Removed the div that displays debug messages */}
+                        <div className="h-[300px] p-2.5 overflow-y-auto relative bg-white">
+                          {callDebugMessages.map((msg, index) => {
+                            const message = msg.message.message;
+                            // Only display normal conversation messages, filter out technical details
+                            if (!message.includes("Tool calls:") && 
+                                !message.includes("FunctionCall") && 
+                                !message.includes("invocation_id") &&
+                                !message.includes("args=") &&
+                                !message.includes("consultationData")) {
+                              return (
+                                <div key={index} className="text-sm text-gray-600 py-2 font-mono">
+                                  {message.replace("LLM response:", "Dr. Riya:")}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
                         <button
                           type="button"
                           className="w-full mt-4 h-10 bg-blue-500 text-white disabled:bg-gray-400"
