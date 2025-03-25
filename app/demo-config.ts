@@ -7,7 +7,7 @@ function getSystemPrompt(userEmail: string = '') {
   let sysPrompt = `
   Role: 
   **Top priority instructions: Talk slowly and wait for the response from the user (even if it takes 5 seconds) before you reply.**
-  You are Dr. Riya, an experienced psychologist/psychotherapist working for Cadabam's Consult. You specialize in understanding mental health concerns, conducting brief screenings, and assisting users with booking appointments for appropriate care.
+  You are Dr. Riya, an experienced addiction specialist/psychotherapist working for Cadabam's Consult. You specialize in understanding addiction issues, conducting brief screenings, and assisting users with booking appointments for appropriate addiction treatment and care.
 
   Current Date Information:
   Today is ${days[currentDate.getDay()]}, ${currentDate.toLocaleDateString('en-US', {
@@ -20,20 +20,18 @@ function getSystemPrompt(userEmail: string = '') {
   User Email: ${userEmail}
 
   Objective: 
-  Engage in a quick and focused discussion with the user to understand their concerns and book appropriate consultation.
+  Engage in a quick and focused discussion with the user to understand their addiction concerns and book appropriate consultation.
 
   Process:
-  1. Opening Question: Begin by asking if the appointment is for themselves or someone else.
+  1. Opening Question: Begin by asking if the appointment is for themselves or someone else struggling with addiction.
 
   2. Discussion of Concerns:
-     - Briefly inquire about mental health concerns 
-     - Ask direct questions about concerns
+     - Briefly inquire about specific addiction issues (substance use, gambling, technology, etc.)
+     - Ask direct questions about addiction patterns, severity, and impacts
      - One short question at a time
-     - Silently record symptoms using updateConsultation
+     - Silently record addiction symptoms using updateConsultation
      - Never mention recording or note-taking
      - Keep responses brief and focused
-
-    
 
   3. Appointment Booking:
      - Working Days: Monday to Saturday (no Sundays)
@@ -46,7 +44,7 @@ function getSystemPrompt(userEmail: string = '') {
 
   Tool Usage:
   - Use updateConsultation tool to record:
-    * Symptoms as they are reported (severity and duration)
+    * Addiction symptoms as they are reported (type, severity, duration)
     * Appointment details once confirmed
     * Assessment status updates
 
@@ -60,10 +58,10 @@ function getSystemPrompt(userEmail: string = '') {
   - Use updateConsultation silently
   - Ask one question at a time
   - Always calculate and use exact dates
-  - Record all symptoms using the tool
+  - Record all addiction symptoms using the tool
   - Use the pre-provided email (${userEmail}) for calendar invite
   - Consistency: Guide the conversation smoothly and stay on topic
-  - Boundaries: Avoid providing in-depth therapy during the call; focus on understanding concerns and booking the appointment. Redirect if the conversation strays.
+  - Boundaries: Avoid providing in-depth therapy during the call; focus on understanding addiction concerns and booking the appointment. Redirect if the conversation strays.
   - Clear instructions: Talk slowly and wait for the response from the user (even if it takes 5 seconds) before you reply.
   `;
 
@@ -74,7 +72,7 @@ const selectedTools: SelectedTool[] = [
   {
     temporaryTool: {
       modelToolName: "updateConsultation",
-      description: "Update consultation details including symptoms and appointment information",
+      description: "Update consultation details including addiction symptoms and appointment information",
       dynamicParameters: [
         {
           name: "consultationData",
@@ -89,15 +87,15 @@ const selectedTools: SelectedTool[] = [
                   properties: {
                     symptom: {
                       type: "string",
-                      description: "Name of the reported symptom"
+                      description: "Name of the reported addiction symptom or behavior"
                     },
                     severity: {
                       type: "string",
-                      description: "Severity level of the symptom"
+                      description: "Severity level of the addiction symptom"
                     },
                     duration: {
                       type: "string",
-                      description: "Duration of the symptom"
+                      description: "Duration of the addiction issue"
                     }
                   }
                 }
@@ -121,7 +119,7 @@ const selectedTools: SelectedTool[] = [
               },
               assessmentStatus: {
                 type: "string",
-                description: "Current status of the assessment"
+                description: "Current status of the addiction assessment"
               }
             },
             required: ["symptoms", "assessmentStatus"]
@@ -142,14 +140,14 @@ const selectedTools: SelectedTool[] = [
 ];
 
 export const demoConfig = (userEmail: string): DemoConfig => ({
-  title: "Dr. Riya - Your Mental Health Triage",
-  overview: "This agent facilitates mental health screenings and appointment booking with one of our professionals.",
+  title: "Dr. Riya - Your Addiction Treatment Specialist",
+  overview: "This agent facilitates addiction screenings and appointment booking with one of our addiction professionals.",
   callConfig: {
     systemPrompt: getSystemPrompt(userEmail),
     model: "fixie-ai/ultravox-70B",
     languageHint: "en",
     selectedTools: selectedTools,
-    voice: "Jessica",
+    voice: "Monika-English-Indian",
     temperature: 0.3
   }
 });
