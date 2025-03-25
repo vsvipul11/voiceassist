@@ -4,6 +4,23 @@ function getSystemPrompt(userEmail: string = '') {
   const currentDate = new Date();
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
+  // Function to get correct date for any day of the week
+  function getCorrectDate(targetDayName: string) {
+    const dayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+      .findIndex(day => day === targetDayName.toLowerCase());
+    
+    if (dayIndex === -1) return null;
+    
+    const today = new Date();
+    const todayIndex = today.getDay();
+    const daysToAdd = (dayIndex - todayIndex + 7) % 7;
+    
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysToAdd);
+    
+    return targetDate;
+  }
+  
   let sysPrompt = `
   Role: 
   **Top priority instructions: Talk slowly, ask only ONE question at a time, and wait for the response from the user (even if it takes 5 seconds) before you reply.**
@@ -16,6 +33,14 @@ function getSystemPrompt(userEmail: string = '') {
     month: 'long',
     day: 'numeric'
   })}
+  
+  DATE VERIFICATION:
+  - Wednesday is ${getCorrectDate('wednesday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
+  - Thursday is ${getCorrectDate('thursday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
+  - Friday is ${getCorrectDate('friday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
+  - Saturday is ${getCorrectDate('saturday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
+  - Monday is ${getCorrectDate('monday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
+  - Tuesday is ${getCorrectDate('tuesday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
 
   User Email: ${userEmail}
 
@@ -27,8 +52,9 @@ function getSystemPrompt(userEmail: string = '') {
 
   2. Discussion of Concerns (ONE QUESTION AT A TIME):
      - Ask about specific addiction type first (substance use, alcohol, gambling, technology, etc.)
-     - Then ask SEPARATE follow-up questions about:
-       * How long they've been struggling with this addiction
+     - Then ask SEPARATE follow-up questions in this exact order:
+       * How long they've been struggling with this addiction (duration)
+       * NEXT QUESTION MUST BE about severity: "On a scale of 1-10, how severe would you say your addiction is?"
        * How frequently they engage in the addictive behavior
        * Whether they've tried to quit before
        * How the addiction impacts their daily life
@@ -41,10 +67,15 @@ function getSystemPrompt(userEmail: string = '') {
      - Never mention recording or note-taking
      - Keep responses brief and focused
      - Do not proceed to next question until you've recorded symptoms from current response
+     - ALWAYS ask about severity immediately after asking about duration
 
   3. Appointment Booking (ONE STEP AT A TIME):
      - Working Days: Monday to Saturday (no Sundays)
      - Working Hours: 9 AM to 7 PM
+     - Calculate exact dates correctly:
+       * When mentioning specific days (e.g., "Wednesday"), ALWAYS verify the correct date
+       * Double-check day and date match (e.g., "Wednesday, March 26, 2025")
+       * Never provide incorrect date information
      - Collect details one by one:
        * First, ONLY ask for Appointment Date (Working Days: Mon to Sat)
        * Then, in the NEXT response, ONLY ask for Appointment Time (Working Hours: 9 AM to 7 PM)
@@ -78,12 +109,12 @@ function getSystemPrompt(userEmail: string = '') {
   
   Example questions for addiction assessment (ask ONE at a time):
   - "What type of addiction are you seeking help for?"
-  - "How long have you been struggling with this addiction?"
+  - "How long have you been struggling with this addiction?" (MUST ask about severity next)
+  - "On a scale of 1-10, how severe would you say your addiction is?" (ALWAYS ask this right after duration)
   - "How often do you engage in this behavior?"
   - "Have you tried to quit or reduce before?"
   - "How does this addiction affect your daily life?"
   - "What made you decide to seek help now?"
-  - "On a scale of 1-10, how would you rate the severity of your addiction?"
   
   Symptom Recording Examples:
   - If user says: "I drink about 5-6 beers every night for the past year"
