@@ -1,7 +1,7 @@
 const TEST_CONFIG = {
-    apiKey: "cal_live_9fd6b017a51050b542dab625142d3c91",
-    eventTypeId: "1694706",
-    userId: "kushal-raju",
+    apiKey: "cal_live_0f65ab843654179650cb981b01b7af2f",
+    eventTypeId: "2077346",
+    userId: "kushal-raju-cadabams",
     apiUrl: "https://api.cal.com/v1",
    };
    
