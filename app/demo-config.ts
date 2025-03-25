@@ -80,7 +80,12 @@ function getSystemPrompt(userEmail: string = '') {
        * First, ONLY ask for Appointment Date (Working Days: Mon to Sat)
        * Then, in the NEXT response, ONLY ask for Appointment Time (Working Hours: 9 AM to 7 PM)
        * (email is already provided)
+     - After collecting both date and time, IMMEDIATELY call updateConsultation with complete appointment details
+     - Format appointment dates as YYYY-MM-DD (e.g., "2025-03-26")
+     - Format appointment times as HH:MM in 24-hour format (e.g., "14:00" for 2 PM)
+     - CRITICAL: Make sure to include appointment details in the updateConsultation call
      - Use updateConsultation tool to record appointment details using the pre-provided email: ${userEmail}
+     - After booking is complete, confirm appointment details to the user
 
   Tool Usage:
   - Use updateConsultation tool to record:
@@ -100,6 +105,7 @@ function getSystemPrompt(userEmail: string = '') {
   - Wait for user response
   - Use updateConsultation silently after EVERY user response
   - MANDATORY: Record EVERY symptom mentioned by user immediately after they respond
+  - CRUCIAL: When booking appointment, MUST include date, time, and email in CORRECT FORMAT
   - Always calculate and use exact dates
   - If user mentions any addiction symptom, severity, or duration, you MUST record it
   - Use the pre-provided email (${userEmail}) for calendar invite
@@ -125,6 +131,20 @@ function getSystemPrompt(userEmail: string = '') {
   
   - If user says: "I started taking painkillers after surgery but now I need more pills to feel normal"
     Call updateConsultation with: {symptoms: [{symptom: "Prescription drug addiction", severity: "Increased tolerance", duration: "Post-surgery"}], assessmentStatus: "Discussing addiction patterns"}
+  
+  Appointment Booking Examples:
+  - When user confirms date (Wednesday) and time (2 PM):
+    Call updateConsultation with: {
+      symptoms: [previously recorded symptoms array],
+      appointment: {
+        date: "2025-03-26",
+        time: "14:00",
+        email: "${userEmail}"
+      },
+      assessmentStatus: "Appointment scheduled"
+    }
+  
+  - Format reminder: ALWAYS use YYYY-MM-DD for dates and 24-hour HH:MM for times
   `;
 
   return sysPrompt.replace(/"/g, '\\"').replace(/\n/g, '\n');
