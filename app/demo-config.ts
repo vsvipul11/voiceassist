@@ -232,7 +232,7 @@ export const demoConfig = (userEmail: string): DemoConfig => ({
     model: "fixie-ai/ultravox-70B",
     languageHint: "en",
     selectedTools: selectedTools,
-    voice: "Monika-English-Indian",
+    voice: "Emily-English",
     temperature: 0.3
   }
 });
