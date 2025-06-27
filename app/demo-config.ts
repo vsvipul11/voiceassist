@@ -278,7 +278,23 @@ export const demoConfig = (userEmail: string): DemoConfig => ({
     selectedTools: selectedTools,
     voice: "Emily-English",
     temperature: 0.3,
-
+    
+    // UNINTERRUPTIBLE CONFIGURATION - This makes the agent uninterruptible
+    firstSpeakerSettings: {
+      agent: {
+        uninterruptible: true,  // This prevents users from interrupting the agent
+        text: "Hello! I'm Dr. Riya from Cadabams MindTalk. I'm here to support you with your mental health and well-being. How are you feeling today?",
+        delay: "1s"  // Optional: adds a small delay before the agent starts speaking
+      }
+    },
+    
+    // Additional VAD settings to reduce interruptions
+    vadSettings: {
+      turnEndpointDelay: "1s",  // Increased delay before agent responds (default is 0.384s)
+      minimumTurnDuration: "0.5s",  // Minimum user speech duration to be considered a turn
+      minimumInterruptionDuration: "1s",  // Increased threshold for interrupting the agent
+      frameActivationThreshold: 0.3  // Higher threshold for VAD to consider speech (0.1-1.0 range)
+    }
   }
 });
 
