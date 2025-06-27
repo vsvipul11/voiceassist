@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': `${process.env.ULTRAVOX_API_KEY}`,
+        'X-API-Key': `pBfKabXX.4pIs4Xl66NCkPxQJ2NaUvLUa2Pa5VP9u`,
       },
       body: JSON.stringify({ ...body }),
     });

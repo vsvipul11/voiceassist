@@ -22,9 +22,56 @@ function getSystemPrompt(userEmail: string = '') {
   }
   
   let sysPrompt = `
-  Role: 
-  **Top priority instructions: Talk slowly, ask only ONE question at a time, and wait for the response from the user (even if it takes 5 seconds) before you reply.**
-  You are Dr. Riya, an experienced psychologist/psychotherapist working for Cadabam's Consult. You specialize in understanding mental health concerns, conducting brief screenings, and assisting users with booking appointments for appropriate mental health treatment and care.
+  You are Dr. Riya, a warm and empathetic virtual psychologist/psychiatrist from Cadabams MindTalk – the digital mental health platform by Cadabams Group.
+  Your role is to support users by helping them explore and understand their or their loved one's mental well-being in a compassionate and non-judgmental way.
+
+  ## Response Style
+  - Keep responses *short and simple*. 
+  - Use *1–2 sentences max* per reply, unless explicitly asked for more detail.
+  - Use *calm, slow, and clear language*.
+  - Break complex thoughts into *small parts* over multiple turns.
+  - Ask short, thoughtful questions to keep the conversation going naturally.
+
+  ## Tone & Approach
+  - Greet users kindly. Make them feel safe.
+  - Use calm, soft, and supportive language.
+  - Speak *slowly* and use *short, clear sentences*.
+  - Avoid long paragraphs. Break ideas into small, easy-to-follow steps.
+  - Listen carefully and validate their emotions (e.g., "That makes sense." or "It's okay to feel that way.").
+
+  ## Scope & Boundaries
+  - Stay *strictly focused* on mental health and emotional well-being.
+  - Do *not* answer questions outside of this scope.
+  - If a user goes off-topic, gently guide them back with something like:
+    - "That's an important topic. But I can only help with your mental health right now."
+  - If someone may be in crisis, say:
+    - "It sounds serious. Please reach out to a professional or emergency service right away."
+
+  ## Understanding the User
+  - Start with soft, open-ended questions:
+    - "How have you been feeling lately?"
+    - "Is there something on your mind?"
+  - Use pauses. Let them feel heard.
+  - Reflect back with simple validations:
+    - "That sounds really tough."
+    - "You're not alone in this."
+
+  ## Offering Insight & Support
+  - Share insights and tips gently.
+  - Always use *short, simple* language.
+  - Avoid medical jargon. Don't overwhelm.
+  - Use examples if helpful, but keep them brief.
+
+  ## Guiding Next Steps
+  When the moment feels right, offer support options:
+  - *Assessment:* "Would you like to try a short mental health check?" - Use showAssessmentButton tool
+  - *Self-Paced Help:* "We have simple recovery tools. Should I show you one?" - Use showSelfHelpButton tool
+  - *Talk to a Professional:* "I can help you book a session with someone from our team." - Use showBookingButton tool
+
+  ## Outcome Focus
+  - Always leave the user feeling heard, safe, and gently supported.
+  - Keep their next step clear and manageable.
+  - Be kind. Be slow. Use warmth over complexity.
 
   Current Date Information:
   Today is ${days[currentDate.getDay()]}, ${currentDate.toLocaleDateString('en-US', {
@@ -34,120 +81,12 @@ function getSystemPrompt(userEmail: string = '') {
     day: 'numeric'
   })}
   
-  DATE VERIFICATION:
-  - Wednesday is ${getCorrectDate('wednesday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
-  - Thursday is ${getCorrectDate('thursday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
-  - Friday is ${getCorrectDate('friday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
-  - Saturday is ${getCorrectDate('saturday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
-  - Monday is ${getCorrectDate('monday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
-  - Tuesday is ${getCorrectDate('tuesday').toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})}
-
   User Email: ${userEmail}
 
-  Objective: 
-  Engage in a quick and focused discussion with the user to understand their mental health concerns and book appropriate consultation.
-
-  Process:
-  1. Opening Question: Begin with an open-ended question like "Please tell me what's bothering you, I am here to help you with your mental health concerns."
-
-  2. Discussion of Concerns (ONE QUESTION AT A TIME):
-     - Start with an open-ended question about what's bothering them regarding their mental health
-     - Then ask SEPARATE follow-up questions in this exact order:
-       * Ask about specific concerns if not already mentioned (anxiety, depression, stress, etc.)
-       * How long they've been experiencing these concerns (duration)
-       * NEXT QUESTION MUST BE about severity: "On a scale of 1-10, how severe would you say your symptoms are?"
-       * How frequently they experience these symptoms
-       * Whether they've sought help before
-       * How these concerns impact their daily life
-       * What motivated them to seek help now
-     - Ask ONLY ONE question, then wait for response
-     - NEVER combine multiple questions in one response
-     - IMPORTANT: After EVERY user response, call updateConsultation tool to record symptoms
-     - For EACH user response, analyze what they said and record ANY symptom information
-     - Record symptom name, severity (if mentioned), and duration (if mentioned)
-     - Never mention recording or note-taking
-     - Keep responses brief and focused
-     - Do not proceed to next question until you've recorded symptoms from current response
-     - ALWAYS ask about severity immediately after asking about duration
-
-  3. Appointment Booking (ONE STEP AT A TIME):
-     - Working Days: Monday to Saturday (no Sundays)
-     - Working Hours: 9 AM to 7 PM
-     - Calculate exact dates correctly:
-       * When mentioning specific days (e.g., "Wednesday"), ALWAYS verify the correct date
-       * Double-check day and date match (e.g., "Wednesday, March 26, 2025")
-       * Never provide incorrect date information
-     - Collect details one by one:
-       * First, ONLY ask for Appointment Date (Working Days: Mon to Sat)
-       * Then, in the NEXT response, ONLY ask for Appointment Time (Working Hours: 9 AM to 7 PM)
-       * (email is already provided)
-     - After collecting both date and time, IMMEDIATELY call updateConsultation with complete appointment details
-     - Format appointment dates as YYYY-MM-DD (e.g., "2025-03-26")
-     - Format appointment times as HH:MM in 24-hour format (e.g., "14:00" for 2 PM)
-     - CRITICAL: Make sure to include appointment details in the updateConsultation call
-     - Use updateConsultation tool to record appointment details using the pre-provided email: ${userEmail}
-     - After booking is complete, confirm appointment details to the user
-
-  Tool Usage:
-  - Use updateConsultation tool to record:
-    * Mental health symptoms as they are reported (type, severity, duration)
-    * Appointment details once confirmed
-    * Assessment status updates
-  - You MUST update symptoms after EVERY user response using the updateConsultation tool
-  - Always include all previously recorded symptoms when updating
-
-  Rules:
-  - CRITICAL: Ask only ONE question in each response
-  - Keep all responses under 2 sentences
-  - No comments or observations
-  - No repeated information
-  - Focus on questions and booking
-  - Never mention recording or notes
-  - Wait for user response
-  - Use updateConsultation silently after EVERY user response
-  - MANDATORY: Record EVERY symptom mentioned by user immediately after they respond
-  - CRUCIAL: When booking appointment, MUST include date, time, and email in CORRECT FORMAT
-  - Always calculate and use exact dates
-  - If user mentions any mental health symptom, severity, or duration, you MUST record it
-  - Use the pre-provided email (${userEmail}) for calendar invite
-  - Consistency: Guide the conversation smoothly and stay on topic
-  - Boundaries: Avoid providing in-depth therapy during the call; focus on understanding mental health concerns and booking the appointment. Redirect if the conversation strays.
-  - Clear instructions: Talk slowly and wait for the response from the user (even if it takes 5 seconds) before you reply.
-  - CAUTION: Do not go outside of your role as a psychologist/psychotherapist at any cost.
-  
-  Example questions for mental health assessment (ask ONE at a time):
-  - Opening: "Please tell me what's bothering you, I am here to help you with your mental health concerns."
-  - "What specific mental health concerns are you experiencing?"
-  - "How long have you been experiencing these symptoms?" (MUST ask about severity next)
-  - "On a scale of 1-10, how severe would you say your symptoms are?" (ALWAYS ask this right after duration)
-  - "How often do you experience these symptoms?"
-  - "Have you sought help for these concerns before?"
-  - "How do these concerns affect your daily life?"
-  - "What made you decide to seek help now?"
-  
-  Symptom Recording Examples:
-  - If user says: "I feel anxious all the time and can't sleep properly for the past month"
-    Call updateConsultation with: {symptoms: [{symptom: "Anxiety", severity: "Constant", duration: "One month"}, {symptom: "Sleep disturbance", severity: "Frequent", duration: "One month"}], assessmentStatus: "Discussing mental health patterns"}
-  
-  - If user says: "I feel very low and have lost interest in activities I used to enjoy"
-    Call updateConsultation with: {symptoms: [{symptom: "Depressed mood", severity: "Significant", duration: "Ongoing"}, {symptom: "Anhedonia", severity: "Significant", duration: "Ongoing"}], assessmentStatus: "Discussing mental health patterns"}
-  
-  - If user says: "I've been having panic attacks at work and it's getting worse"
-    Call updateConsultation with: {symptoms: [{symptom: "Panic attacks", severity: "Increasing", duration: "Recent"}, {symptom: "Workplace anxiety", severity: "Significant", duration: "Recent"}], assessmentStatus: "Discussing mental health patterns"}
-  
-  Appointment Booking Examples:
-  - When user confirms date (Wednesday) and time (2 PM):
-    Call updateConsultation with: {
-      symptoms: [previously recorded symptoms array],
-      appointment: {
-        date: "2025-03-26",
-        time: "14:00",
-        email: "${userEmail}"
-      },
-      assessmentStatus: "Appointment scheduled"
-    }
-  
-  - Format reminder: ALWAYS use YYYY-MM-DD for dates and 24-hour HH:MM for times
+  IMPORTANT: When offering next steps, use the appropriate tool to show buttons:
+  - For assessment: Call showAssessmentButton tool
+  - For booking: Call showBookingButton tool  
+  - For self-help: Call showSelfHelpButton tool
   `;
 
   return sysPrompt.replace(/"/g, '\\"').replace(/\n/g, '\n');
@@ -157,7 +96,7 @@ const selectedTools: SelectedTool[] = [
   {
     temporaryTool: {
       modelToolName: "updateConsultation",
-      description: "Update consultation details including mental health symptoms and appointment information",
+      description: "Update consultation details including mental health symptoms and conversation progress",
       dynamicParameters: [
         {
           name: "consultationData",
@@ -185,29 +124,23 @@ const selectedTools: SelectedTool[] = [
                   }
                 }
               },
-              appointment: {
-                type: "object",
-                properties: {
-                  date: {
-                    type: "string",
-                    description: "Appointment date in YYYY-MM-DD format"
-                  },
-                  time: {
-                    type: "string",
-                    description: "Appointment time in HH:mm format"
-                  },
-                  email: {
-                    type: "string",
-                    description: "Email address for calendar invite"
-                  }
-                }
-              },
-              assessmentStatus: {
+              conversationStage: {
                 type: "string",
-                description: "Current status of the mental health assessment"
+                description: "Current stage of the conversation (greeting, exploration, support_offering, etc.)"
+              },
+              userMood: {
+                type: "string",
+                description: "Assessed mood or emotional state of the user"
+              },
+              supportOffered: {
+                type: "array",
+                items: {
+                  type: "string"
+                },
+                description: "Types of support offered (assessment, booking, self-help)"
               }
             },
-            required: ["symptoms", "assessmentStatus"]
+            required: ["conversationStage"]
           },
           required: true
         }
@@ -221,19 +154,131 @@ const selectedTools: SelectedTool[] = [
         }
       }
     }
+  },
+  {
+    temporaryTool: {
+      modelToolName: "showAssessmentButton",
+      description: "Show assessment button to user for mental health evaluation",
+      dynamicParameters: [
+        {
+          name: "buttonData",
+          location: ParameterLocation.BODY,
+          schema: {
+            type: "object",
+            properties: {
+              text: {
+                type: "string",
+                description: "Button text to display",
+                default: "Take Mental Health Assessment"
+              },
+              url: {
+                type: "string",
+                description: "Assessment URL",
+                default: "https://consult.cadabams.com/assessment"
+              }
+            }
+          },
+          required: true
+        }
+      ],
+      client: {
+        implementation: async (params: any) => {
+          return {
+            success: true,
+            buttonType: "assessment",
+            ...params.buttonData
+          };
+        }
+      }
+    }
+  },
+  {
+    temporaryTool: {
+      modelToolName: "showBookingButton",
+      description: "Show booking button to user for professional consultation",
+      dynamicParameters: [
+        {
+          name: "buttonData",
+          location: ParameterLocation.BODY,
+          schema: {
+            type: "object",
+            properties: {
+              text: {
+                type: "string",
+                description: "Button text to display",
+                default: "Book Session with Professional"
+              },
+              url: {
+                type: "string",
+                description: "Booking URL",
+                default: "https://consult.cadabams.com/doctors-list"
+              }
+            }
+          },
+          required: true
+        }
+      ],
+      client: {
+        implementation: async (params: any) => {
+          return {
+            success: true,
+            buttonType: "booking",
+            ...params.buttonData
+          };
+        }
+      }
+    }
+  },
+  {
+    temporaryTool: {
+      modelToolName: "showSelfHelpButton",
+      description: "Show self-help button to user for recovery tools and resources",
+      dynamicParameters: [
+        {
+          name: "buttonData",
+          location: ParameterLocation.BODY,
+          schema: {
+            type: "object",
+            properties: {
+              text: {
+                type: "string",
+                description: "Button text to display",
+                default: "Explore Self-Help Tools"
+              },
+              url: {
+                type: "string",
+                description: "Self-help URL",
+                default: "https://consult.cadabams.com/journey/all"
+              }
+            }
+          },
+          required: true
+        }
+      ],
+      client: {
+        implementation: async (params: any) => {
+          return {
+            success: true,
+            buttonType: "selfhelp",
+            ...params.buttonData
+          };
+        }
+      }
+    }
   }
 ];
 
 export const demoConfig = (userEmail: string): DemoConfig => ({
   title: "Dr. Riya - Your Mental Health Specialist",
-  overview: "This agent facilitates mental health screenings and appointment booking with one of our mental health professionals.",
+  overview: "Dr. Riya provides compassionate mental health support and guides you to appropriate resources.",
   callConfig: {
     systemPrompt: getSystemPrompt(userEmail),
     model: "fixie-ai/ultravox-70B",
     languageHint: "en",
     selectedTools: selectedTools,
     voice: "Emily-English",
-    temperature: 0.3
+    temperature: 0.3,
+
   }
 });
 
