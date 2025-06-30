@@ -44,70 +44,99 @@ export function toggleMute(role: Role): void {
 
 // Client tool implementations for mental health consultation
 const updateConsultationNotesTool = async (params: any) => {
-  console.log('updateConsultationNotes called with:', params);
-  
-  // Dispatch custom event with consultation data
-  if (typeof window !== 'undefined') {
-    const event = new CustomEvent('consultationNotesUpdated', { 
-      detail: params.consultationData 
-    });
-    window.dispatchEvent(event);
+  try {
+    console.log('updateConsultationNotes called with:', params);
+    
+    // Dispatch event immediately but silently
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('consultationNotesUpdated', { 
+        detail: params.consultationData 
+      });
+      window.dispatchEvent(event);
+    }
+    
+    // Return a minimal response to avoid triggering agent speech
+    return "Notes updated.";
+  } catch (error) {
+    console.error('Error in updateConsultationNotes:', error);
+    return "Update failed.";
   }
-  
-  return "Consultation notes have been updated successfully.";
 };
 
 const showAssessmentButtonTool = async (params: any) => {
-  console.log('showAssessmentButton called with:', params);
-  
-  // Dispatch custom event for assessment button
-  if (typeof window !== 'undefined') {
-    const event = new CustomEvent('showActionButton', { 
-      detail: {
-        type: 'assessment',
-        text: params.buttonData?.text || 'Take Mental Health Assessment',
-        url: params.buttonData?.url || 'https://consult.cadabams.com/assessment'
+  try {
+    console.log('showAssessmentButton called with:', params);
+    
+    // Use setTimeout to dispatch event asynchronously
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('showActionButton', { 
+          detail: {
+            type: 'assessment',
+            text: params.buttonData?.text || 'Take Mental Health Assessment',
+            url: params.buttonData?.url || 'https://consult.cadabams.com/assessment'
+          }
+        });
+        window.dispatchEvent(event);
       }
-    });
-    window.dispatchEvent(event);
+    }, 0);
+    
+    return "Assessment button displayed successfully.";
+  } catch (error) {
+    console.error('Error in showAssessmentButton:', error);
+    return "Failed to display assessment button.";
   }
-  
-  return "Assessment button displayed successfully.";
 };
 
 const showBookingButtonTool = async (params: any) => {
-  console.log('showBookingButton called with:', params);
-  
-  // Dispatch custom event for booking button
-  if (typeof window !== 'undefined') {
-    const event = new CustomEvent('showActionButton', { 
-      detail: {
-        type: 'booking',
-        text: params.buttonData?.text || 'Book Session with Professional',
-        url: params.buttonData?.url || 'https://consult.cadabams.com/doctors-list'
+  try {
+    console.log('showBookingButton called with:', params);
+    
+    // Use setTimeout to dispatch event asynchronously
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('showActionButton', { 
+          detail: {
+            type: 'booking',
+            text: params.buttonData?.text || 'Book Session with Professional',
+            url: params.buttonData?.url || 'https://consult.cadabams.com/doctors-list'
+          }
+        });
+        window.dispatchEvent(event);
       }
-    });
-    window.dispatchEvent(event);
+    }, 0);
+    
+    return "Booking button displayed successfully.";
+  } catch (error) {
+    console.error('Error in showBookingButton:', error);
+    return "Failed to display booking button.";
   }
-  
-  return "Booking button displayed successfully.";
 };
 
 const showSelfHelpButtonTool = async (params: any) => {
-  console.log('showSelfHelpButton called with:', params);
-  
-  // Dispatch custom event for self-help button
-  if (typeof window !== 'undefined') {
-    const event = new CustomEvent('showActionButton', { 
-      detail: {
-        type: 'selfhelp',
-        text: params.buttonData?.text || 'Explore Self-Help Tools',
-        url: params.buttonData?.url || 'https://consult.cadabams.com/journey/all'
+  try {
+    console.log('showSelfHelpButton called with:', params);
+    
+    // Use setTimeout to dispatch event asynchronously
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('showActionButton', { 
+          detail: {
+            type: 'selfhelp',
+            text: params.buttonData?.text || 'Explore Self-Help Tools',
+            url: params.buttonData?.url || 'https://consult.cadabams.com/journey/all'
+          }
+        });
+        window.dispatchEvent(event);
       }
-    });
-    window.dispatchEvent(event);
+    }, 0);
+    
+    // FIXED: Added missing return statement
+    return "Self-help button displayed successfully.";
+  } catch (error) {
+    console.error('Error in showSelfHelpButton:', error);
+    return "Failed to display self-help button.";
   }
-  
 };
 
 async function createCall(callConfig: CallConfig, showDebugMessages?: boolean): Promise<JoinUrlResponse> {
@@ -159,6 +188,7 @@ export async function startCall(callbacks: CallCallbacks, callConfig: CallConfig
     // Register our client tools BEFORE joining the call
     console.log('Registering client tools...');
     
+    // Register tools with error handling and async dispatch
     uvSession.registerToolImplementation(
       "updateConsultationNotes",
       updateConsultationNotesTool
