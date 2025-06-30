@@ -56,23 +56,32 @@ const apiService = {
   
   async createLead(contactName, callerMobile, callerZip = "", userId = 1) {
     try {
+      // Ensure required fields are provided
+      if (!contactName || !callerMobile) {
+        throw new Error("Missing required fields: caller_mobile and contact_name are mandatory");
+      }
+
+      const requestBody = {
+        caller_mobile: callerMobile,  // Updated field name
+        contact_name: contactName,
+        caller_zip: callerZip || "",
+        country_code: 91,
+        user_id: userId,
+      };
+
+      console.log("Creating lead with data:", requestBody);
+
       const response = await fetch(`${this.baseUrl}/create-chat-lead`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          mobile: callerMobile,
-          contact_name: contactName,
-          caller_zip: callerZip,
-          country_code: 91,
-          user_id: userId,
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create lead");
+        throw new Error(data.error || data.message || "Failed to create lead");
       }
       
       return data;
@@ -327,39 +336,7 @@ const MessageBubble = ({ message, isUser, timestamp, buttons }) => {
 };
 
 // Improved Conversation Notes Component
-const ConversationNotes = ({ consultationData, messages, callHistory }) => {
-  const getImportantDetails = () => {
-    const details = [];
-    
-    // Extract important keywords and phrases from messages
-    const importantKeywords = [
-      'feel', 'feeling', 'anxiety', 'depression', 'stress', 'worried', 'scared',
-      'sad', 'angry', 'overwhelmed', 'tired', 'sleep', 'work', 'family',
-      'relationship', 'panic', 'fear', 'help', 'support', 'therapy',
-      'medication', 'doctor', 'months', 'weeks', 'years', 'daily', 'night'
-    ];
-
-    messages.forEach((msg, index) => {
-      if (msg.isUser && msg.text.length > 20) {
-        const text = msg.text.toLowerCase();
-        const hasImportantKeyword = importantKeywords.some(keyword => 
-          text.includes(keyword)
-        );
-        
-        if (hasImportantKeyword) {
-          details.push({
-            type: 'user_statement',
-            text: msg.text,
-            timestamp: msg.timestamp,
-            importance: 'high'
-          });
-        }
-      }
-    });
-
-    return details.slice(-5); // Return last 5 important details
-  };
-
+const ConversationNotes = ({ consultationNotes, messages, callHistory, patientName }) => {
   const getConversationSummary = () => {
     const userMessages = messages.filter(msg => msg.isUser).length;
     const aiMessages = messages.filter(msg => !msg.isUser).length;
@@ -367,12 +344,11 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
   };
 
   const summary = getConversationSummary();
-  const importantDetails = getImportantDetails();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
       <h3 className="text-lg font-semibold mb-4 text-orange-600 border-b border-orange-200 pb-2">
-        Consultation Notes
+        Session Notes - {patientName}
       </h3>
 
       <div className="space-y-4">
@@ -382,17 +358,17 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
           <div className="bg-orange-50 p-3 rounded-lg text-sm">
             <div className="grid grid-cols-2 gap-2">
               <div>Messages: {summary.totalMessages}</div>
-              <div>Stage: {consultationData.conversationStage}</div>
+              <div>Stage: {consultationNotes.conversationStage}</div>
             </div>
           </div>
         </div>
 
         {/* Current Mood */}
-        {consultationData.userMood && (
+        {consultationNotes.userMood && (
           <div>
             <h4 className="font-medium text-orange-600 mb-2">Current Mood</h4>
             <div className="bg-orange-50 p-3 rounded-lg">
-              <span className="text-sm font-medium">{consultationData.userMood}</span>
+              <span className="text-sm font-medium">{consultationNotes.userMood}</span>
             </div>
           </div>
         )}
@@ -401,8 +377,8 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
         <div>
           <h4 className="font-medium text-orange-600 mb-2">Reported Concerns</h4>
           <div className="space-y-2">
-            {consultationData.symptoms && consultationData.symptoms.length > 0 ? (
-              consultationData.symptoms.map((symptom, index) => (
+            {consultationNotes.symptoms && consultationNotes.symptoms.length > 0 ? (
+              consultationNotes.symptoms.map((symptom, index) => (
                 <div key={index} className="bg-orange-50 p-3 rounded-lg border border-orange-200">
                   <div className="font-medium text-gray-900 mb-1">
                     {symptom.symptom}
@@ -431,18 +407,18 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
           </div>
         </div>
 
-        {/* Important Details from Conversation */}
-        {importantDetails.length > 0 && (
+        {/* Key Points from Conversation */}
+        {consultationNotes.keyPoints && consultationNotes.keyPoints.length > 0 && (
           <div>
             <h4 className="font-medium text-orange-600 mb-2">Key Points Discussed</h4>
             <div className="bg-orange-50 p-3 rounded-lg max-h-40 overflow-y-auto">
               <div className="space-y-2">
-                {importantDetails.map((detail, index) => (
+                {consultationNotes.keyPoints.map((point, index) => (
                   <div key={index} className="text-sm border-l-2 border-orange-300 pl-2">
                     <div className="text-gray-700">
-                      "{detail.text.length > 100 ? `${detail.text.substring(0, 100)}...` : detail.text}"
+                      "{point.text}"
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{detail.timestamp}</div>
+                    <div className="text-xs text-gray-500 mt-1">{point.timestamp}</div>
                   </div>
                 ))}
               </div>
@@ -451,12 +427,12 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
         )}
 
         {/* Support Options */}
-        {consultationData.supportOffered && consultationData.supportOffered.length > 0 && (
+        {consultationNotes.supportOffered && consultationNotes.supportOffered.length > 0 && (
           <div>
             <h4 className="font-medium text-orange-600 mb-2">Support Options Discussed</h4>
             <div className="bg-orange-50 p-3 rounded-lg">
               <div className="space-y-1">
-                {consultationData.supportOffered.map((support, index) => (
+                {consultationNotes.supportOffered.map((support, index) => (
                   <div key={index} className="text-sm text-gray-700 flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
                     <span>{support}</span>
@@ -544,19 +520,22 @@ const Home = () => {
   
   // UI State
   const [lastUpdateTime, setLastUpdateTime] = useState("");
-  const [consultationData, setConsultationData] = useState({
+  const [consultationNotes, setConsultationNotes] = useState({
     symptoms: [],
     conversationStage: "Not started",
     userMood: "",
     supportOffered: [],
+    keyPoints: [],
   });
   const [messages, setMessages] = useState([]);
-  const [actionButtons, setActionButtons] = useState([]);
   const [callHistory, setCallHistory] = useState([]);
   const [currentSessionStart, setCurrentSessionStart] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(false); // Mobile sidebar toggle
   
   const transcriptContainerRef = useRef(null);
   const demoConfigRef = useRef(null);
+  const processedTranscriptsRef = useRef(new Set());
+  const processedDebugMessagesRef = useRef(new Set());
 
   // Initialize demo config when user details are set
   useEffect(() => {
@@ -572,33 +551,198 @@ const Home = () => {
     }
   }, [messages]);
 
+  // Process transcript messages properly
+  const processTranscripts = useCallback(() => {
+    if (!callTranscript || callTranscript.length === 0) return;
+
+    callTranscript.forEach(transcript => {
+      // Create unique ID for each transcript to avoid duplicates
+      const transcriptId = `${transcript.speaker}-${transcript.ordinal}-${transcript.text}`;
+      
+      if (processedTranscriptsRef.current.has(transcriptId)) {
+        return; // Skip already processed transcripts
+      }
+
+      // Only process final transcripts to avoid partial updates
+      if (!transcript.final) {
+        return;
+      }
+
+      if (transcript.text && transcript.text.trim()) {
+        const isUser = transcript.speaker === Role.USER;
+        
+        setMessages(prev => {
+          // Check if this message already exists
+          const exists = prev.some(msg => 
+            msg.text === transcript.text.trim() && 
+            msg.isUser === isUser &&
+            msg.ordinal === transcript.ordinal
+          );
+          
+          if (!exists) {
+            const newMessage = {
+              id: `${transcript.speaker}-${transcript.ordinal}-${Date.now()}`,
+              text: transcript.text.trim(),
+              isUser: isUser,
+              timestamp: new Date().toLocaleTimeString(),
+              sender: isUser ? userDetails?.name || "You" : "Dr. Riya",
+              ordinal: transcript.ordinal
+            };
+            
+            return [...prev, newMessage];
+          }
+          return prev;
+        });
+
+        processedTranscriptsRef.current.add(transcriptId);
+      }
+    });
+  }, [callTranscript, userDetails]);
+
+  // Process debug messages for tool calls and consultation updates
+  const processDebugMessages = useCallback(() => {
+    if (!callDebugMessages || callDebugMessages.length === 0) return;
+
+    callDebugMessages.forEach(debugMsg => {
+      const debugId = `${debugMsg.timestamp || Date.now()}-${debugMsg.message}`;
+      
+      if (processedDebugMessagesRef.current.has(debugId)) {
+        return; // Skip already processed messages
+      }
+
+      try {
+        const message = debugMsg.message;
+        console.log("Processing debug message:", message);
+
+        // Parse consultation data updates
+        if (message.includes("Tool calls:") && message.includes("updateConsultationNotes")) {
+          const consultationUpdate = parseConsultationData(message);
+          if (consultationUpdate) {
+            setConsultationNotes(prev => ({
+              ...prev,
+              ...consultationUpdate
+            }));
+          }
+        }
+
+        // Parse button tool calls
+        if (message.includes("Tool calls:") && 
+            (message.includes("showAssessmentButton") || 
+             message.includes("showBookingButton") || 
+             message.includes("showSelfHelpButton"))) {
+          
+          const buttonData = parseButtonData(message);
+          if (buttonData) {
+            setMessages(prev => {
+              const lastMessage = prev[prev.length - 1];
+              if (lastMessage && !lastMessage.isUser && !lastMessage.buttons) {
+                // Add button to last agent message
+                const updatedMessages = [...prev];
+                updatedMessages[updatedMessages.length - 1] = {
+                  ...lastMessage,
+                  buttons: [buttonData]
+                };
+                return updatedMessages;
+              } else {
+                // Create new message with button
+                return [...prev, {
+                  id: `button-${Date.now()}`,
+                  text: "Here are some options that might help:",
+                  isUser: false,
+                  timestamp: new Date().toLocaleTimeString(),
+                  sender: "Dr. Riya",
+                  buttons: [buttonData]
+                }];
+              }
+            });
+          }
+        }
+
+        processedDebugMessagesRef.current.add(debugId);
+      } catch (error) {
+        console.error("Error processing debug message:", error);
+      }
+    });
+  }, [callDebugMessages]);
+
+  // Custom event handlers for tool implementations
+  useEffect(() => {
+    const handleConsultationNotesUpdated = (event) => {
+      console.log("Consultation notes updated via event:", event.detail);
+      setConsultationNotes(prev => ({
+        ...prev,
+        ...event.detail
+      }));
+    };
+
+    const handleActionButton = (event) => {
+      console.log("Action button event:", event.detail);
+      const buttonData = event.detail;
+      
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && !lastMessage.isUser && !lastMessage.buttons) {
+          // Add button to last agent message
+          const updatedMessages = [...prev];
+          updatedMessages[updatedMessages.length - 1] = {
+            ...lastMessage,
+            buttons: [buttonData]
+          };
+          return updatedMessages;
+        } else {
+          // Create new message with button
+          return [...prev, {
+            id: `button-${Date.now()}`,
+            text: "Here are some options that might help:",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+            sender: "Dr. Riya",
+            buttons: [buttonData]
+          }];
+        }
+      });
+    };
+
+    const handleCallEnded = () => {
+      console.log("Call ended event received");
+    };
+
+    // Add event listeners
+    window.addEventListener('consultationNotesUpdated', handleConsultationNotesUpdated);
+    window.addEventListener('showActionButton', handleActionButton);
+    window.addEventListener('callEnded', handleCallEnded);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('consultationNotesUpdated', handleConsultationNotesUpdated);
+      window.removeEventListener('showActionButton', handleActionButton);
+      window.removeEventListener('callEnded', handleCallEnded);
+    };
+  }, []);
+
   // Parse consultation data from debug messages
   const parseConsultationData = useCallback((message) => {
     try {
-      if (message.includes("Tool calls:") && message.includes("updateConsultation")) {
-        console.log("Raw debug message:", message);
+      if (message.includes("Tool calls:") && message.includes("updateConsultationNotes")) {
+        console.log("Parsing consultation data from:", message);
         
-        // Extract JSON from the message
-        const jsonMatches = message.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
-        if (jsonMatches) {
-          for (let jsonStr of jsonMatches) {
-            try {
-              const parsed = JSON.parse(jsonStr);
-              console.log("Parsed consultation data:", parsed);
-              
-              if (parsed.consultationData || parsed.symptoms || parsed.conversationStage) {
-                const consultationData = parsed.consultationData || parsed;
-                return {
-                  symptoms: Array.isArray(consultationData.symptoms) ? consultationData.symptoms : [],
-                  conversationStage: consultationData.conversationStage || "In Progress",
-                  userMood: consultationData.userMood || "",
-                  supportOffered: Array.isArray(consultationData.supportOffered) ? consultationData.supportOffered : [],
-                };
-              }
-            } catch (parseError) {
-              continue;
-            }
-          }
+        // Extract JSON from the message - improved parsing
+        const argsMatch = message.match(/args='([^']+)'/);
+        if (argsMatch) {
+          const jsonStr = argsMatch[1].replace(/\\"/g, '"');
+          const parsed = JSON.parse(jsonStr);
+          console.log("Parsed consultation data:", parsed);
+          
+          // Handle nested consultationData structure
+          const consultationData = parsed.consultationData || parsed;
+          
+          return {
+            symptoms: consultationData.symptoms || [],
+            conversationStage: consultationData.conversationStage || "In Progress",
+            userMood: consultationData.userMood || "",
+            supportOffered: consultationData.supportOffered || [],
+            keyPoints: consultationData.keyPoints || [],
+          };
         }
       }
       return null;
@@ -611,13 +755,7 @@ const Home = () => {
   // Parse button data from debug messages  
   const parseButtonData = useCallback((message) => {
     try {
-      if (message.includes("Tool calls:") && 
-          (message.includes("showAssessmentButton") || 
-           message.includes("showBookingButton") || 
-           message.includes("showSelfHelpButton"))) {
-        
-        console.log("Button tool called:", message);
-        
+      if (message.includes("Tool calls:")) {
         let buttonType = "default";
         if (message.includes("showAssessmentButton")) buttonType = "assessment";
         else if (message.includes("showBookingButton")) buttonType = "booking";
@@ -654,102 +792,33 @@ const Home = () => {
     }
   }, []);
 
-  // Process transcript and debug messages
+  // Process transcripts and debug messages
   useEffect(() => {
-    if (callTranscript && callTranscript.length > 0) {
-      // Handle user transcripts
-      const userTranscripts = callTranscript.filter(t => t.speaker === Role.USER);
-      userTranscripts.forEach(transcript => {
-        if (transcript.text && transcript.text.trim()) {
-          setMessages(prev => {
-            const exists = prev.some(msg => 
-              msg.text === transcript.text && msg.isUser === true
-            );
-            if (!exists) {
-              return [...prev, {
-                id: Date.now() + Math.random(),
-                text: transcript.text.trim(),
-                isUser: true,
-                timestamp: new Date().toLocaleTimeString(),
-                sender: userDetails?.name || "You"
-              }];
-            }
-            return prev;
-          });
-        }
-      });
+    processTranscripts();
+  }, [processTranscripts]);
 
-      // Handle agent transcripts
-      const agentTranscripts = callTranscript.filter(t => t.speaker === Role.AGENT);
-      agentTranscripts.forEach(transcript => {
-        if (transcript.text && transcript.text.trim()) {
-          setMessages(prev => {
-            const exists = prev.some(msg => 
-              msg.text === transcript.text && msg.isUser === false
-            );
-            if (!exists) {
-              return [...prev, {
-                id: Date.now() + Math.random(),
-                text: transcript.text.trim(),
-                isUser: false,
-                timestamp: new Date().toLocaleTimeString(),
-                sender: "Dr. Riya"
-              }];
-            }
-            return prev;
-          });
-        }
-      });
-    }
-
-    // Parse debug messages for consultation data and buttons
-    callDebugMessages.forEach(debugMsg => {
-      const consultationUpdate = parseConsultationData(debugMsg.message);
-      if (consultationUpdate) {
-        setConsultationData(prev => ({
-          symptoms: [...prev.symptoms, ...consultationUpdate.symptoms],
-          conversationStage: consultationUpdate.conversationStage || prev.conversationStage,
-          userMood: consultationUpdate.userMood || prev.userMood,
-          supportOffered: [...new Set([...prev.supportOffered, ...consultationUpdate.supportOffered])],
-        }));
-      }
-
-      const buttonData = parseButtonData(debugMsg.message);
-      if (buttonData) {
-        setMessages(prev => {
-          const lastMessage = prev[prev.length - 1];
-          if (lastMessage && !lastMessage.isUser && !lastMessage.buttons) {
-            const updatedMessages = [...prev];
-            updatedMessages[updatedMessages.length - 1] = {
-              ...lastMessage,
-              buttons: [buttonData]
-            };
-            return updatedMessages;
-          } else {
-            return [...prev, {
-              id: Date.now(),
-              text: "Here are some options that might help:",
-              isUser: false,
-              timestamp: new Date().toLocaleTimeString(),
-              sender: "Dr. Riya",
-              buttons: [buttonData]
-            }];
-          }
-        });
-      }
-    });
-  }, [callTranscript, callDebugMessages, userDetails, parseConsultationData, parseButtonData]);
+  useEffect(() => {
+    processDebugMessages();
+  }, [processDebugMessages]);
 
   const handleUserDetailsSubmit = async (details) => {
     setIsLoadingUserData(true);
     
     try {
+      // Validate required fields before API call
+      if (!details.name || !details.mobile) {
+        throw new Error("Name and mobile number are required");
+      }
+
+      console.log("Submitting user details:", details);
+      
       const leadResponse = await apiService.createLead(
-        details.name,
-        details.mobile,
-        details.zipCode
+        details.name.trim(),
+        details.mobile.trim(),
+        details.zipCode?.trim() || ""
       );
       
+      console.log("Lead created successfully:", leadResponse);
       setLeadData(leadResponse);
       setUserDetails(details);
       
@@ -765,7 +834,7 @@ const Home = () => {
       
     } catch (error) {
       console.error("Error setting up user:", error);
-      alert("Failed to set up consultation. Please try again.");
+      alert(`Failed to set up consultation: ${error.message}. Please try again.`);
     } finally {
       setIsLoadingUserData(false);
     }
@@ -852,6 +921,10 @@ const Home = () => {
       setCallDebugMessages([]);
       clearCustomerProfile();
 
+      // Clear processed message tracking
+      processedTranscriptsRef.current.clear();
+      processedDebugMessagesRef.current.clear();
+
       const newKey = `call-${Date.now()}`;
       setCustomerProfileKey(newKey);
 
@@ -867,7 +940,7 @@ const Home = () => {
           onDebugMessage: handleDebugMessage,
         },
         callConfig,
-        showDebugMessages || true // Always show debug messages to capture tool calls
+        true // Always enable debug messages to capture tool calls
       );
 
       setIsCallActive(true);
@@ -876,7 +949,7 @@ const Home = () => {
       // Add welcome message only if no previous messages
       if (messages.length === 0) {
         setMessages([{
-          id: Date.now(),
+          id: 'welcome-message',
           text: "Hello! I'm Dr. Riya from Cadabams MindTalk. I'm here to provide compassionate support for your mental health. How have you been feeling lately?",
           isUser: false,
           timestamp: new Date().toLocaleTimeString(),
@@ -917,8 +990,8 @@ const Home = () => {
           endTime: sessionEnd.toLocaleTimeString(),
           duration: `${duration} min`,
           messageCount: messages.length,
-          stage: consultationData.conversationStage,
-          symptoms: consultationData.symptoms.length
+          stage: consultationNotes.conversationStage,
+          symptoms: consultationNotes.symptoms.length
         };
         
         setCallHistory(prev => [...prev, sessionData]);
@@ -936,18 +1009,22 @@ const Home = () => {
   const handleNewSession = () => {
     // Clear only current session data, keep history
     setMessages([]);
-    setConsultationData({
+    setConsultationNotes({
       symptoms: [],
       conversationStage: "Not started",
       userMood: "",
       supportOffered: [],
+      keyPoints: [],
     });
-    setActionButtons([]);
     setCallTranscript([]);
     setCallDebugMessages([]);
     setAgentStatus("Not Connected");
     setIsCallActive(false);
     setCurrentSessionStart(null);
+    
+    // Clear processed message tracking
+    processedTranscriptsRef.current.clear();
+    processedDebugMessagesRef.current.clear();
   };
 
   const handleSwitchUser = () => {
@@ -957,14 +1034,18 @@ const Home = () => {
     setAppointmentData(null);
     setIsCallActive(false);
     setMessages([]);
-    setActionButtons([]);
     setCallHistory([]);
-    setConsultationData({
+    setConsultationNotes({
       symptoms: [],
       conversationStage: "Not started",
       userMood: "",
       supportOffered: [],
+      keyPoints: [],
     });
+    
+    // Clear processed message tracking
+    processedTranscriptsRef.current.clear();
+    processedDebugMessagesRef.current.clear();
   };
 
   if (showUserForm) {
@@ -1006,7 +1087,10 @@ const Home = () => {
             
             {/* Chat Area - Mobile First, Always Visible */}
             <div className="flex-1 flex flex-col min-h-0 order-1 lg:order-1">
-              <div className="bg-white rounded-lg shadow-sm border flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+              <div className="bg-white rounded-lg shadow-sm border flex flex-col" style={{ 
+                height: 'calc(100vh - 200px)',
+                minHeight: 'calc(100vh - 200px)' 
+              }}>
                 
                 {/* Chat Header */}
                 <div className="border-b p-3 md:p-4 flex-shrink-0">
@@ -1030,13 +1114,14 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Messages Area - Flexible Height */}
+                {/* Messages Area - Flexible Height but ensure space for controls */}
                 <div 
                   ref={transcriptContainerRef}
                   className="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50"
+                  style={{ minHeight: '300px' }}
                 >
                   {messages.length === 0 && !isCallActive && (
-                    <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
+                    <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full min-h-[200px]">
                       <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p className="text-sm md:text-base">Start your consultation with Dr. Riya</p>
                       <p className="text-xs md:text-sm mt-2">Compassionate mental health support</p>
@@ -1054,8 +1139,8 @@ const Home = () => {
                   ))}
                 </div>
 
-                {/* Call Controls - Always Visible, Fixed at Bottom */}
-                <div className="border-t p-3 md:p-4 flex-shrink-0 bg-white">
+                {/* Call Controls - Always Visible at Bottom, Fixed Position on Mobile */}
+                <div className="border-t p-3 md:p-4 flex-shrink-0 bg-white sticky bottom-0">
                   {isCallActive ? (
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <button
@@ -1128,71 +1213,87 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Sidebar - Mobile: Below chat, Desktop: Side */}
+            {/* Sidebar - Mobile: Below chat, Desktop: Side, Collapsible on Mobile */}
             <div className="w-full lg:w-80 xl:w-96 space-y-4 order-2 lg:order-2">
               
-              {/* Appointment Status */}
-              <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-orange-500" />
-                  Appointment Status
-                </h3>
-                <AppointmentCard appointment={appointmentData?.appointment} />
+              {/* Show/Hide Sidebar Button on Mobile */}
+              <div className="lg:hidden mb-4">
+                <button
+                  onClick={() => setShowSidebar(!showSidebar)}
+                  className="w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                >
+                  {showSidebar ? 'Hide Details' : 'Show Patient Details & Notes'}
+                </button>
               </div>
 
-              {/* Consultation Notes */}
-              <ConversationNotes 
-                consultationData={consultationData}
-                messages={messages}
-                callHistory={callHistory}
-              />
-
-              {/* User Information */}
-              <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <User className="w-5 h-5 mr-2 text-gray-600" />
-                  Patient Information
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-medium">{userDetails?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Mobile:</span>
-                    <span className="font-medium">{userDetails?.mobile}</span>
-                  </div>
-                  {userDetails?.zipCode && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">ZIP Code:</span>
-                      <span className="font-medium">{userDetails.zipCode}</span>
-                    </div>
-                  )}
-                  {leadData?.success && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Lead ID:</span>
-                      <span className="font-medium text-orange-600">
-                        {leadData.lead_id}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              {/* Sidebar Content - Hidden on Mobile by default */}
+              <div className={`space-y-4 ${showSidebar ? 'block' : 'hidden lg:block'}`}>
                 
-                <div className="flex flex-col gap-2 mt-4">
-                  <button
-                    onClick={handleSwitchUser}
-                    className="w-full px-4 py-2 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
-                  >
-                    Switch User
-                  </button>
-                  
-                  {callHistory.length > 0 && (
-                    <div className="text-xs text-gray-500 text-center mt-2">
-                      Total Sessions: {callHistory.length}
-                    </div>
-                  )}
+                {/* Appointment Status */}
+                <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <Calendar className="w-5 h-5 mr-2 text-orange-500" />
+                    Appointment Status
+                  </h3>
+                  <AppointmentCard appointment={appointmentData?.appointment} />
                 </div>
-              </div>
+
+                {/* Consultation Notes */}
+                <ConversationNotes 
+                  consultationNotes={consultationNotes}
+                  messages={messages}
+                  callHistory={callHistory}
+                  patientName={userDetails?.name}
+                />
+
+                {/* User Information */}
+                <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <User className="w-5 h-5 mr-2 text-gray-600" />
+                    Patient Information
+                  </h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Name:</span>
+                      <span className="font-medium">{userDetails?.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Mobile:</span>
+                      <span className="font-medium">{userDetails?.mobile}</span>
+                    </div>
+                    {userDetails?.zipCode && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">ZIP Code:</span>
+                        <span className="font-medium">{userDetails.zipCode}</span>
+                      </div>
+                    )}
+                    {leadData?.success && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Lead ID:</span>
+                        <span className="font-medium text-orange-600">
+                          {leadData.lead_id}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 mt-4">
+                    <button
+                      onClick={handleSwitchUser}
+                      className="w-full px-4 py-2 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors"
+                    >
+                      Switch User
+                    </button>
+                    
+                    {callHistory.length > 0 && (
+                      <div className="text-xs text-gray-500 text-center mt-2">
+                        Total Sessions: {callHistory.length}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              
+              </div> {/* End of collapsible sidebar content */}
             </div>
           </div>
         </div>

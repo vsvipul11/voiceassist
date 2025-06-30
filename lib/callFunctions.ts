@@ -23,6 +23,8 @@ interface CallConfig {
   selectedTools: any[];
   voice: string;
   temperature: number;
+  firstSpeakerSettings?: any;
+  vadSettings?: any;
 }
 
 export function toggleMute(role: Role): void {
@@ -41,21 +43,18 @@ export function toggleMute(role: Role): void {
 }
 
 // Client tool implementations for mental health consultation
-const updateConsultationTool = async (params: any) => {
-  console.log('updateConsultation called with:', params);
+const updateConsultationNotesTool = async (params: any) => {
+  console.log('updateConsultationNotes called with:', params);
   
   // Dispatch custom event with consultation data
   if (typeof window !== 'undefined') {
-    const event = new CustomEvent('consultationUpdated', { 
+    const event = new CustomEvent('consultationNotesUpdated', { 
       detail: params.consultationData 
     });
     window.dispatchEvent(event);
   }
   
-  return {
-    success: true,
-    consultationData: params.consultationData
-  };
+  return "Consultation notes have been updated successfully.";
 };
 
 const showAssessmentButtonTool = async (params: any) => {
@@ -73,11 +72,7 @@ const showAssessmentButtonTool = async (params: any) => {
     window.dispatchEvent(event);
   }
   
-  return {
-    success: true,
-    buttonType: 'assessment',
-    ...params.buttonData
-  };
+  return "Assessment button displayed successfully.";
 };
 
 const showBookingButtonTool = async (params: any) => {
@@ -95,11 +90,7 @@ const showBookingButtonTool = async (params: any) => {
     window.dispatchEvent(event);
   }
   
-  return {
-    success: true,
-    buttonType: 'booking',
-    ...params.buttonData
-  };
+  return "Booking button displayed successfully.";
 };
 
 const showSelfHelpButtonTool = async (params: any) => {
@@ -117,11 +108,6 @@ const showSelfHelpButtonTool = async (params: any) => {
     window.dispatchEvent(event);
   }
   
-  return {
-    success: true,
-    buttonType: 'selfhelp',
-    ...params.buttonData
-  };
 };
 
 async function createCall(callConfig: CallConfig, showDebugMessages?: boolean): Promise<JoinUrlResponse> {
@@ -156,22 +142,26 @@ async function createCall(callConfig: CallConfig, showDebugMessages?: boolean): 
 }
 
 export async function startCall(callbacks: CallCallbacks, callConfig: CallConfig, showDebugMessages?: boolean): Promise<void> {
-  const callData = await createCall(callConfig, showDebugMessages);
-  const joinUrl = callData.joinUrl;
+  try {
+    const callData = await createCall(callConfig, showDebugMessages);
+    const joinUrl = callData.joinUrl;
 
-  if (!joinUrl && !uvSession) {
-    console.error('Join URL is required');
-    return;
-  } else {
+    if (!joinUrl) {
+      console.error('Join URL is required');
+      throw new Error('Failed to get join URL');
+    }
+
     console.log('Joining call:', joinUrl);
 
-    // Start up our Ultravox Session
+    // Start up our Ultravox Session with debug messages enabled
     uvSession = new UltravoxSession({ experimentalMessages: debugMessages });
 
-    // Register our tools for mental health consultation
+    // Register our client tools BEFORE joining the call
+    console.log('Registering client tools...');
+    
     uvSession.registerToolImplementation(
-      "updateConsultation",
-      updateConsultationTool
+      "updateConsultationNotes",
+      updateConsultationNotesTool
     );
 
     uvSession.registerToolImplementation(
@@ -180,7 +170,7 @@ export async function startCall(callbacks: CallCallbacks, callConfig: CallConfig
     );
 
     uvSession.registerToolImplementation(
-      "showBookingButton",
+      "showBookingButton", 
       showBookingButtonTool
     );
 
@@ -191,41 +181,49 @@ export async function startCall(callbacks: CallCallbacks, callConfig: CallConfig
 
     if (showDebugMessages) {
       console.log('uvSession created:', uvSession);
-      console.log('uvSession methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(uvSession)));
+      console.log('Tools registered successfully');
     }
 
-    if (uvSession) {
-      uvSession.addEventListener('status', (event: any) => {
-        callbacks.onStatusChange(uvSession?.status);
-      });
+    // Set up event listeners BEFORE joining
+    uvSession.addEventListener('status', (event: any) => {
+      console.log('Status event:', uvSession?.status);
+      callbacks.onStatusChange(uvSession?.status);
+    });
 
-      uvSession.addEventListener('transcript', (event: any) => {
-        callbacks.onTranscriptChange(uvSession?.transcripts);
-      });
+    uvSession.addEventListener('transcript', (event: any) => {
+      console.log('Transcript event:', uvSession?.transcripts);
+      callbacks.onTranscriptChange(uvSession?.transcripts);
+    });
 
-      uvSession.addEventListener('experimental_message', (msg: any) => {
-        callbacks?.onDebugMessage?.(msg);
-      });
+    uvSession.addEventListener('experimental_message', (msg: any) => {
+      console.log('Debug message:', msg);
+      callbacks?.onDebugMessage?.(msg);
+    });
 
-      uvSession.joinCall(joinUrl);
-      console.log('Session status:', uvSession.status);
-    } else {
-      return;
-    }
+    // Now join the call
+    await uvSession.joinCall(joinUrl);
+    console.log('Call joined successfully. Session status:', uvSession.status);
+
+  } catch (error) {
+    console.error('Error starting call:', error);
+    throw error;
   }
-
-  console.log('Call started!');
 }
 
 export async function endCall(): Promise<void> {
-  console.log('Call ended.');
+  console.log('Ending call...');
 
   if (uvSession) {
-    uvSession.leaveCall();
+    try {
+      await uvSession.leaveCall();
+      console.log('Call left successfully');
+    } catch (error) {
+      console.error('Error leaving call:', error);
+    }
     uvSession = null;
   }
 
-  // Dispatch a custom event when the call ends so that we can clear consultation data
+  // Dispatch a custom event when the call ends
   if (typeof window !== 'undefined') {
     const event = new CustomEvent('callEnded');
     window.dispatchEvent(event);
