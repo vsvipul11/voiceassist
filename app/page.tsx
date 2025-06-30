@@ -326,8 +326,40 @@ const MessageBubble = ({ message, isUser, timestamp, buttons }) => {
   );
 };
 
-// Conversation Notes Component
+// Improved Conversation Notes Component
 const ConversationNotes = ({ consultationData, messages, callHistory }) => {
+  const getImportantDetails = () => {
+    const details = [];
+    
+    // Extract important keywords and phrases from messages
+    const importantKeywords = [
+      'feel', 'feeling', 'anxiety', 'depression', 'stress', 'worried', 'scared',
+      'sad', 'angry', 'overwhelmed', 'tired', 'sleep', 'work', 'family',
+      'relationship', 'panic', 'fear', 'help', 'support', 'therapy',
+      'medication', 'doctor', 'months', 'weeks', 'years', 'daily', 'night'
+    ];
+
+    messages.forEach((msg, index) => {
+      if (msg.isUser && msg.text.length > 20) {
+        const text = msg.text.toLowerCase();
+        const hasImportantKeyword = importantKeywords.some(keyword => 
+          text.includes(keyword)
+        );
+        
+        if (hasImportantKeyword) {
+          details.push({
+            type: 'user_statement',
+            text: msg.text,
+            timestamp: msg.timestamp,
+            importance: 'high'
+          });
+        }
+      }
+    });
+
+    return details.slice(-5); // Return last 5 important details
+  };
+
   const getConversationSummary = () => {
     const userMessages = messages.filter(msg => msg.isUser).length;
     const aiMessages = messages.filter(msg => !msg.isUser).length;
@@ -335,6 +367,7 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
   };
 
   const summary = getConversationSummary();
+  const importantDetails = getImportantDetails();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
@@ -343,34 +376,30 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
       </h3>
 
       <div className="space-y-4">
-        {/* Conversation Overview */}
+        {/* Session Overview */}
         <div>
           <h4 className="font-medium text-orange-600 mb-2">Session Overview</h4>
           <div className="bg-orange-50 p-3 rounded-lg text-sm">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div>Total Messages: {summary.totalMessages}</div>
-              <div>User Messages: {summary.userMessages}</div>
-              <div>AI Responses: {summary.aiMessages}</div>
-            </div>
-            <div className="mt-2">
-              Stage: <span className="font-medium">{consultationData.conversationStage}</span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>Messages: {summary.totalMessages}</div>
+              <div>Stage: {consultationData.conversationStage}</div>
             </div>
           </div>
         </div>
 
-        {/* Current Mood Assessment */}
+        {/* Current Mood */}
         {consultationData.userMood && (
           <div>
-            <h4 className="font-medium text-orange-600 mb-2">Current Mood Assessment</h4>
+            <h4 className="font-medium text-orange-600 mb-2">Current Mood</h4>
             <div className="bg-orange-50 p-3 rounded-lg">
               <span className="text-sm font-medium">{consultationData.userMood}</span>
             </div>
           </div>
         )}
 
-        {/* Reported Concerns */}
+        {/* Key Symptoms/Concerns */}
         <div>
-          <h4 className="font-medium text-orange-600 mb-2">Reported Concerns & Symptoms</h4>
+          <h4 className="font-medium text-orange-600 mb-2">Reported Concerns</h4>
           <div className="space-y-2">
             {consultationData.symptoms && consultationData.symptoms.length > 0 ? (
               consultationData.symptoms.map((symptom, index) => (
@@ -402,7 +431,26 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
           </div>
         </div>
 
-        {/* Support Offered */}
+        {/* Important Details from Conversation */}
+        {importantDetails.length > 0 && (
+          <div>
+            <h4 className="font-medium text-orange-600 mb-2">Key Points Discussed</h4>
+            <div className="bg-orange-50 p-3 rounded-lg max-h-40 overflow-y-auto">
+              <div className="space-y-2">
+                {importantDetails.map((detail, index) => (
+                  <div key={index} className="text-sm border-l-2 border-orange-300 pl-2">
+                    <div className="text-gray-700">
+                      "{detail.text.length > 100 ? `${detail.text.substring(0, 100)}...` : detail.text}"
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">{detail.timestamp}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Support Options */}
         {consultationData.supportOffered && consultationData.supportOffered.length > 0 && (
           <div>
             <h4 className="font-medium text-orange-600 mb-2">Support Options Discussed</h4>
@@ -419,38 +467,17 @@ const ConversationNotes = ({ consultationData, messages, callHistory }) => {
           </div>
         )}
 
-        {/* Key Conversation Points */}
-        {messages.length > 0 && (
-          <div>
-            <h4 className="font-medium text-orange-600 mb-2">Key Conversation Points</h4>
-            <div className="bg-orange-50 p-3 rounded-lg max-h-32 overflow-y-auto">
-              <div className="space-y-2">
-                {messages.slice(-5).map((msg, index) => (
-                  <div key={index} className="text-xs">
-                    <span className={`font-medium ${msg.isUser ? 'text-blue-600' : 'text-green-600'}`}>
-                      {msg.isUser ? 'User' : 'Dr. Riya'}:
-                    </span>
-                    <span className="ml-2 text-gray-700">
-                      {msg.text.length > 100 ? `${msg.text.substring(0, 100)}...` : msg.text}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Call History */}
+        {/* Session History */}
         {callHistory.length > 0 && (
           <div>
-            <h4 className="font-medium text-orange-600 mb-2">Session History</h4>
+            <h4 className="font-medium text-orange-600 mb-2">Previous Sessions</h4>
             <div className="bg-orange-50 p-3 rounded-lg">
               <div className="space-y-2">
-                {callHistory.map((session, index) => (
+                {callHistory.slice(-3).map((session, index) => (
                   <div key={index} className="text-sm text-gray-700 border-b border-orange-200 pb-2 last:border-b-0">
-                    <div className="font-medium">Session {index + 1}</div>
+                    <div className="font-medium">Session {callHistory.length - callHistory.slice(-3).length + index + 1}</div>
                     <div className="text-xs text-gray-600">
-                      {session.date} • Duration: {session.duration} • Messages: {session.messageCount}
+                      {session.date} • {session.duration} • {session.messageCount} messages
                     </div>
                   </div>
                 ))}
@@ -545,33 +572,31 @@ const Home = () => {
     }
   }, [messages]);
 
-  // Parse consultation data from messages
+  // Parse consultation data from debug messages
   const parseConsultationData = useCallback((message) => {
     try {
       if (message.includes("Tool calls:") && message.includes("updateConsultation")) {
-        console.log("Raw message:", message);
+        console.log("Raw debug message:", message);
         
-        const lines = message.split('\n');
-        for (let line of lines) {
-          if (line.includes('updateConsultation') && line.includes('{')) {
-            const argsMatch = line.match(/args='([^']+)'/);
-            if (argsMatch) {
-              try {
-                const argsJson = JSON.parse(argsMatch[1]);
-                console.log("Parsed args:", argsJson);
-                
-                if (argsJson.consultationData || argsJson.symptoms) {
-                  const consultationData = argsJson.consultationData || argsJson;
-                  return {
-                    symptoms: Array.isArray(consultationData.symptoms) ? consultationData.symptoms : [],
-                    conversationStage: consultationData.conversationStage || "In Progress",
-                    userMood: consultationData.userMood || "",
-                    supportOffered: Array.isArray(consultationData.supportOffered) ? consultationData.supportOffered : [],
-                  };
-                }
-              } catch (parseError) {
-                console.error("Error parsing args:", parseError);
+        // Extract JSON from the message
+        const jsonMatches = message.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g);
+        if (jsonMatches) {
+          for (let jsonStr of jsonMatches) {
+            try {
+              const parsed = JSON.parse(jsonStr);
+              console.log("Parsed consultation data:", parsed);
+              
+              if (parsed.consultationData || parsed.symptoms || parsed.conversationStage) {
+                const consultationData = parsed.consultationData || parsed;
+                return {
+                  symptoms: Array.isArray(consultationData.symptoms) ? consultationData.symptoms : [],
+                  conversationStage: consultationData.conversationStage || "In Progress",
+                  userMood: consultationData.userMood || "",
+                  supportOffered: Array.isArray(consultationData.supportOffered) ? consultationData.supportOffered : [],
+                };
               }
+            } catch (parseError) {
+              continue;
             }
           }
         }
@@ -583,111 +608,56 @@ const Home = () => {
     }
   }, []);
 
-  // Add event listeners for consultation data updates
-  useEffect(() => {
-    const handleConsultationUpdate = (event) => {
-      console.log("Consultation updated:", event.detail);
-      const consultationData = event.detail;
-      
-      setConsultationData((prevData) => {
-        const mergedSymptoms = [...prevData.symptoms];
+  // Parse button data from debug messages  
+  const parseButtonData = useCallback((message) => {
+    try {
+      if (message.includes("Tool calls:") && 
+          (message.includes("showAssessmentButton") || 
+           message.includes("showBookingButton") || 
+           message.includes("showSelfHelpButton"))) {
         
-        if (consultationData.symptoms && consultationData.symptoms.length > 0) {
-          consultationData.symptoms.forEach(newSymptom => {
-            const existingIndex = mergedSymptoms.findIndex(
-              existing => existing.symptom === newSymptom.symptom
-            );
-            
-            if (existingIndex >= 0) {
-              mergedSymptoms[existingIndex] = {
-                ...mergedSymptoms[existingIndex],
-                ...newSymptom
-              };
-            } else {
-              mergedSymptoms.push(newSymptom);
-            }
-          });
-        }
+        console.log("Button tool called:", message);
         
-        const newData = {
-          symptoms: mergedSymptoms,
-          conversationStage: consultationData.conversationStage || prevData.conversationStage,
-          userMood: consultationData.userMood || prevData.userMood,
-          supportOffered: consultationData.supportOffered && consultationData.supportOffered.length > 0 
-            ? [...new Set([...prevData.supportOffered, ...consultationData.supportOffered])]
-            : prevData.supportOffered,
-        };
-        
-        console.log("Updated consultation data:", newData);
-        return newData;
-      });
-    };
+        let buttonType = "default";
+        if (message.includes("showAssessmentButton")) buttonType = "assessment";
+        else if (message.includes("showBookingButton")) buttonType = "booking";
+        else if (message.includes("showSelfHelpButton")) buttonType = "selfhelp";
 
-    const handleActionButton = (event) => {
-      console.log("Action button triggered:", event.detail);
-      const buttonData = event.detail;
-      
-      setMessages(prev => {
-        const lastMessage = prev[prev.length - 1];
-        if (lastMessage && !lastMessage.isUser && !lastMessage.buttons) {
-          const updatedMessages = [...prev];
-          updatedMessages[updatedMessages.length - 1] = {
-            ...lastMessage,
-            buttons: [buttonData]
-          };
-          return updatedMessages;
-        } else {
-          return [...prev, {
-            id: Date.now(),
-            text: "Here are some options that might help:",
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString(),
-            sender: "Dr. Riya",
-            buttons: [buttonData]
-          }];
-        }
-      });
-    };
-
-    // Call ended event - save session but don't clear data
-    const handleCallEnded = () => {
-      console.log("Call ended, saving session data");
-      
-      if (currentSessionStart && messages.length > 0) {
-        const sessionEnd = new Date();
-        const duration = Math.round((sessionEnd - currentSessionStart) / 1000 / 60); // minutes
-        
-        const sessionData = {
-          date: currentSessionStart.toLocaleDateString(),
-          startTime: currentSessionStart.toLocaleTimeString(),
-          endTime: sessionEnd.toLocaleTimeString(),
-          duration: `${duration} min`,
-          messageCount: messages.length,
-          stage: consultationData.conversationStage,
-          symptoms: consultationData.symptoms.length
+        const getDefaultButtonText = (type) => {
+          switch (type) {
+            case 'assessment': return 'Take Mental Health Assessment';
+            case 'booking': return 'Book Session with Professional';
+            case 'selfhelp': return 'Explore Self-Help Tools';
+            default: return 'Learn More';
+          }
         };
-        
-        setCallHistory(prev => [...prev, sessionData]);
-        setCurrentSessionStart(null);
+
+        const getDefaultButtonUrl = (type) => {
+          switch (type) {
+            case 'assessment': return 'https://consult.cadabams.com/assessment';
+            case 'booking': return 'https://consult.cadabams.com/doctors-list';
+            case 'selfhelp': return 'https://consult.cadabams.com/journey/all';
+            default: return '#';
+          }
+        };
+
+        return {
+          type: buttonType,
+          text: getDefaultButtonText(buttonType),
+          url: getDefaultButtonUrl(buttonType),
+        };
       }
-    };
+      return null;
+    } catch (error) {
+      console.error("Error parsing button data:", error);
+      return null;
+    }
+  }, []);
 
-    // Add event listeners
-    window.addEventListener('consultationUpdated', handleConsultationUpdate);
-    window.addEventListener('showActionButton', handleActionButton);
-    window.addEventListener('callEnded', handleCallEnded);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('consultationUpdated', handleConsultationUpdate);
-      window.removeEventListener('showActionButton', handleActionButton);
-      window.removeEventListener('callEnded', handleCallEnded);
-    };
-  }, [currentSessionStart, messages.length, consultationData.conversationStage, consultationData.symptoms.length]);
-
-  // Process transcript changes
+  // Process transcript and debug messages
   useEffect(() => {
     if (callTranscript && callTranscript.length > 0) {
+      // Handle user transcripts
       const userTranscripts = callTranscript.filter(t => t.speaker === Role.USER);
       userTranscripts.forEach(transcript => {
         if (transcript.text && transcript.text.trim()) {
@@ -709,18 +679,66 @@ const Home = () => {
         }
       });
 
-      // Parse debug messages for consultation data
-      callDebugMessages.forEach(debugMsg => {
-        const consultationUpdate = parseConsultationData(debugMsg.message);
-        if (consultationUpdate) {
-          setConsultationData(prev => ({
-            ...prev,
-            ...consultationUpdate
-          }));
+      // Handle agent transcripts
+      const agentTranscripts = callTranscript.filter(t => t.speaker === Role.AGENT);
+      agentTranscripts.forEach(transcript => {
+        if (transcript.text && transcript.text.trim()) {
+          setMessages(prev => {
+            const exists = prev.some(msg => 
+              msg.text === transcript.text && msg.isUser === false
+            );
+            if (!exists) {
+              return [...prev, {
+                id: Date.now() + Math.random(),
+                text: transcript.text.trim(),
+                isUser: false,
+                timestamp: new Date().toLocaleTimeString(),
+                sender: "Dr. Riya"
+              }];
+            }
+            return prev;
+          });
         }
       });
     }
-  }, [callTranscript, callDebugMessages, userDetails, parseConsultationData]);
+
+    // Parse debug messages for consultation data and buttons
+    callDebugMessages.forEach(debugMsg => {
+      const consultationUpdate = parseConsultationData(debugMsg.message);
+      if (consultationUpdate) {
+        setConsultationData(prev => ({
+          symptoms: [...prev.symptoms, ...consultationUpdate.symptoms],
+          conversationStage: consultationUpdate.conversationStage || prev.conversationStage,
+          userMood: consultationUpdate.userMood || prev.userMood,
+          supportOffered: [...new Set([...prev.supportOffered, ...consultationUpdate.supportOffered])],
+        }));
+      }
+
+      const buttonData = parseButtonData(debugMsg.message);
+      if (buttonData) {
+        setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage && !lastMessage.isUser && !lastMessage.buttons) {
+            const updatedMessages = [...prev];
+            updatedMessages[updatedMessages.length - 1] = {
+              ...lastMessage,
+              buttons: [buttonData]
+            };
+            return updatedMessages;
+          } else {
+            return [...prev, {
+              id: Date.now(),
+              text: "Here are some options that might help:",
+              isUser: false,
+              timestamp: new Date().toLocaleTimeString(),
+              sender: "Dr. Riya",
+              buttons: [buttonData]
+            }];
+          }
+        });
+      }
+    });
+  }, [callTranscript, callDebugMessages, userDetails, parseConsultationData, parseButtonData]);
 
   const handleUserDetailsSubmit = async (details) => {
     setIsLoadingUserData(true);
@@ -781,7 +799,7 @@ const Home = () => {
     } else {
       setAgentStatus("Not Connected");
     }
-    }, []);
+  }, []);
 
   const handleTranscriptChange = useCallback(
     (transcripts) => {
@@ -832,8 +850,6 @@ const Home = () => {
       handleStatusChange("Starting call...");
       setCallTranscript([]);
       setCallDebugMessages([]);
-      // Don't clear messages - keep conversation history
-      setActionButtons([]);
       clearCustomerProfile();
 
       const newKey = `call-${Date.now()}`;
@@ -851,7 +867,7 @@ const Home = () => {
           onDebugMessage: handleDebugMessage,
         },
         callConfig,
-        showDebugMessages
+        showDebugMessages || true // Always show debug messages to capture tool calls
       );
 
       setIsCallActive(true);
@@ -889,6 +905,25 @@ const Home = () => {
       setCustomerProfileKey(null);
       setIsMuted(false);
       handleStatusChange("Call ended successfully");
+      
+      // Save session data when call ends
+      if (currentSessionStart && messages.length > 0) {
+        const sessionEnd = new Date();
+        const duration = Math.round((sessionEnd - currentSessionStart) / 1000 / 60); // minutes
+        
+        const sessionData = {
+          date: currentSessionStart.toLocaleDateString(),
+          startTime: currentSessionStart.toLocaleTimeString(),
+          endTime: sessionEnd.toLocaleTimeString(),
+          duration: `${duration} min`,
+          messageCount: messages.length,
+          stage: consultationData.conversationStage,
+          symptoms: consultationData.symptoms.length
+        };
+        
+        setCallHistory(prev => [...prev, sessionData]);
+        setCurrentSessionStart(null);
+      }
     } catch (error) {
       handleStatusChange(
         `Error ending call: ${
@@ -945,7 +980,7 @@ const Home = () => {
         showUserTranscripts,
       }) => (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-          {/* Header */}
+          {/* Header - Sticky */}
           <div className="bg-white border-b shadow-sm sticky top-0 z-40">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex justify-between items-center">
@@ -969,9 +1004,9 @@ const Home = () => {
           {/* Main Content */}
           <div className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 gap-4">
             
-            {/* Chat Area - Mobile First */}
+            {/* Chat Area - Mobile First, Always Visible */}
             <div className="flex-1 flex flex-col min-h-0 order-1 lg:order-1">
-              <div className="bg-white rounded-lg shadow-sm border flex flex-col h-full">
+              <div className="bg-white rounded-lg shadow-sm border flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
                 
                 {/* Chat Header */}
                 <div className="border-b p-3 md:p-4 flex-shrink-0">
@@ -995,10 +1030,10 @@ const Home = () => {
                   </div>
                 </div>
 
-                {/* Messages Area */}
+                {/* Messages Area - Flexible Height */}
                 <div 
                   ref={transcriptContainerRef}
-                  className="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50 min-h-[300px] max-h-[400px] md:max-h-[500px]"
+                  className="flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50"
                 >
                   {messages.length === 0 && !isCallActive && (
                     <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
@@ -1019,7 +1054,7 @@ const Home = () => {
                   ))}
                 </div>
 
-                {/* Call Controls - Always Visible on Mobile */}
+                {/* Call Controls - Always Visible, Fixed at Bottom */}
                 <div className="border-t p-3 md:p-4 flex-shrink-0 bg-white">
                   {isCallActive ? (
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
