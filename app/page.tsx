@@ -676,8 +676,14 @@ const Home = () => {
     };
 
     const handleActionButton = (event) => {
-      console.log("Action button event:", event.detail);
+      console.log("Action button event received:", event.detail);
       const buttonData = event.detail;
+      
+      // Validate button data
+      if (!buttonData || !buttonData.type) {
+        console.error("Invalid button data received:", buttonData);
+        return;
+      }
       
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
@@ -688,17 +694,20 @@ const Home = () => {
             ...lastMessage,
             buttons: [buttonData]
           };
+          console.log("Added button to existing message:", buttonData);
           return updatedMessages;
         } else {
           // Create new message with button
-          return [...prev, {
+          const newMessage = {
             id: `button-${Date.now()}`,
             text: "Here are some options that might help:",
             isUser: false,
             timestamp: new Date().toLocaleTimeString(),
             sender: "Dr. Riya",
             buttons: [buttonData]
-          }];
+          };
+          console.log("Created new message with button:", newMessage);
+          return [...prev, newMessage];
         }
       });
     };
@@ -708,12 +717,14 @@ const Home = () => {
     };
 
     // Add event listeners
+    console.log("Adding custom event listeners");
     window.addEventListener('consultationNotesUpdated', handleConsultationNotesUpdated);
     window.addEventListener('showActionButton', handleActionButton);
     window.addEventListener('callEnded', handleCallEnded);
 
     // Cleanup
     return () => {
+      console.log("Removing custom event listeners");
       window.removeEventListener('consultationNotesUpdated', handleConsultationNotesUpdated);
       window.removeEventListener('showActionButton', handleActionButton);
       window.removeEventListener('callEnded', handleCallEnded);
@@ -756,10 +767,14 @@ const Home = () => {
   const parseButtonData = useCallback((message) => {
     try {
       if (message.includes("Tool calls:")) {
+        console.log("Parsing button from debug message:", message);
+        
         let buttonType = "default";
         if (message.includes("showAssessmentButton")) buttonType = "assessment";
-        else if (message.includes("showBookingButton")) buttonType = "booking";
+        else if (message.includes("showBookingButton")) buttonType = "booking";  
         else if (message.includes("showSelfHelpButton")) buttonType = "selfhelp";
+
+        console.log("Detected button type:", buttonType);
 
         const getDefaultButtonText = (type) => {
           switch (type) {
@@ -779,11 +794,14 @@ const Home = () => {
           }
         };
 
-        return {
+        const buttonData = {
           type: buttonType,
           text: getDefaultButtonText(buttonType),
           url: getDefaultButtonUrl(buttonType),
         };
+
+        console.log("Generated button data:", buttonData);
+        return buttonData;
       }
       return null;
     } catch (error) {
@@ -1225,10 +1243,8 @@ const Home = () => {
                   {showSidebar ? 'Hide Details' : 'Show Patient Details & Notes'}
                 </button>
               </div>
-
               {/* Sidebar Content - Hidden on Mobile by default */}
               <div className={`space-y-4 ${showSidebar ? 'block' : 'hidden lg:block'}`}>
-                
                 {/* Appointment Status */}
                 <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -1237,7 +1253,6 @@ const Home = () => {
                   </h3>
                   <AppointmentCard appointment={appointmentData?.appointment} />
                 </div>
-
                 {/* Consultation Notes */}
                 <ConversationNotes 
                   consultationNotes={consultationNotes}
@@ -1245,7 +1260,6 @@ const Home = () => {
                   callHistory={callHistory}
                   patientName={userDetails?.name}
                 />
-
                 {/* User Information */}
                 <div className="bg-white rounded-lg shadow-sm border p-4 md:p-6">
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -1276,7 +1290,6 @@ const Home = () => {
                       </div>
                     )}
                   </div>
-                  
                   <div className="flex flex-col gap-2 mt-4">
                     <button
                       onClick={handleSwitchUser}
@@ -1284,7 +1297,6 @@ const Home = () => {
                     >
                       Switch User
                     </button>
-                    
                     {callHistory.length > 0 && (
                       <div className="text-xs text-gray-500 text-center mt-2">
                         Total Sessions: {callHistory.length}
@@ -1292,7 +1304,6 @@ const Home = () => {
                     )}
                   </div>
                 </div>
-              
               </div> {/* End of collapsible sidebar content */}
             </div>
           </div>

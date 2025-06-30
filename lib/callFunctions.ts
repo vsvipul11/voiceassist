@@ -179,6 +179,14 @@ export async function startCall(callbacks: CallCallbacks, callConfig: CallConfig
       showSelfHelpButtonTool
     );
 
+    // Add additional logging to verify registration
+    console.log('All tools registered:', {
+      updateConsultationNotes: 'registered',
+      showAssessmentButton: 'registered', 
+      showBookingButton: 'registered',
+      showSelfHelpButton: 'registered'
+    });
+
     if (showDebugMessages) {
       console.log('uvSession created:', uvSession);
       console.log('Tools registered successfully');
