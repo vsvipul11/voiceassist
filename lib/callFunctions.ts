@@ -185,13 +185,40 @@ export async function startCall(callbacks: CallCallbacks, callConfig: CallConfig
     // Start up our Ultravox Session with debug messages enabled
     uvSession = new UltravoxSession({ experimentalMessages: debugMessages });
 
-    // Register our client tools BEFORE joining the call
+    // Register our client tools BEFORE joining the call with specific behavior instructions
     console.log('Registering client tools...');
     
-    // Register tools with error handling and async dispatch
+    // Register consultation notes tool to be completely silent and non-intrusive
     uvSession.registerToolImplementation(
       "updateConsultationNotes",
-      updateConsultationNotesTool
+      async (params: any) => {
+        try {
+          // Silent logging only
+          console.log('updateConsultationNotes - silent background update');
+          
+          // Queue the UI update to happen after current conversation turn
+          requestAnimationFrame(() => {
+            if (typeof window !== 'undefined') {
+              const event = new CustomEvent('consultationNotesUpdated', { 
+                detail: params.consultationData 
+              });
+              window.dispatchEvent(event);
+            }
+          });
+          
+          // Return object with agent_reaction to make agent listen instead of speak
+          return {
+            result: "",
+            agent_reaction: "listens"
+          };
+        } catch (error) {
+          console.error('Silent error in updateConsultationNotes:', error);
+          return {
+            result: "",
+            agent_reaction: "listens"
+          };
+        }
+      }
     );
 
     uvSession.registerToolImplementation(

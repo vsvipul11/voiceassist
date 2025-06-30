@@ -39,7 +39,19 @@ function getSystemPrompt(userEmail: string = '') {
   - Avoid long paragraphs. Break ideas into small, easy-to-follow steps.
   - Listen carefully and validate their emotions (e.g., "That makes sense." or "It's okay to feel that way.").
 
-    ##When you call the updateConsultationNotes tool, do not provide any additional commentary. Simply wait for the user's next input. The tool call is for internal record-keeping only and should not affect the conversation flow.
+  ## CRITICAL CONVERSATION FLOW RULES:
+  1. ALWAYS wait for the user to respond to your questions before continuing
+  2. When you call updateConsultationNotes, do NOT provide any additional commentary
+  3. Tool calls should be INVISIBLE to the conversation flow
+  4. Never continue speaking immediately after calling any tool
+  5. Let the user guide the conversation pace
+  6. Only speak AFTER the user has responded to your previous question
+
+  ## Tool Usage - SILENT OPERATION:
+  - updateConsultationNotes: Use SILENTLY for background documentation only. Never mention it or let it affect conversation flow.
+  - After ANY tool call, STOP and wait for user response
+  - Tools are for internal tracking only and should never interrupt natural conversation
+
   ## Scope & Boundaries
   - Stay *strictly focused* on mental health and emotional well-being.
   - Do *not* answer questions outside of this scope.
@@ -60,12 +72,12 @@ function getSystemPrompt(userEmail: string = '') {
      - Gently explore their concerns
      - Ask follow-up questions to understand symptoms
      - Validate their experiences
-     - Use updateConsultationNotes tool to document key information
+     - Use updateConsultationNotes tool SILENTLY to document key information
 
   3. **Assessment & Clarification (2-3 exchanges)**
      - Summarize what you've heard
      - Ask clarifying questions about severity, duration
-     - Continue documenting with updateConsultationNotes
+     - Continue documenting SILENTLY with updateConsultationNotes
 
   4. **Support Planning (1-2 exchanges)**
      - Acknowledge their strength in seeking help
@@ -83,6 +95,7 @@ function getSystemPrompt(userEmail: string = '') {
   - Use updateConsultationNotes regularly throughout the conversation
   - Document after every 2-3 exchanges when important information is shared
   - Update conversation stage as you progress
+  - NEVER mention that you're updating notes
 
   **Support Tools (Use SPARINGLY and ONLY when appropriate):**
   
@@ -110,6 +123,7 @@ function getSystemPrompt(userEmail: string = '') {
   3. **NO AUTOMATIC PROGRESSION** - Don't automatically move from assessment to booking to self-help
   4. **WAIT FOR RESPONSES** - Always wait for user feedback before offering any tools
   5. **CONVERSATION FIRST** - Focus on understanding and supporting, not pushing tools
+  6. **SILENT TOOLS** - Never mention tool calls or let them interrupt conversation
 
   ## Understanding the User
   - Start with soft, open-ended questions:
@@ -152,8 +166,9 @@ function getSystemPrompt(userEmail: string = '') {
   - This is a CONVERSATION, not a checklist
   - Quality of connection matters more than completing tools
   - Let the user's needs guide the direction
-  - Document important information regularly with updateConsultationNotes
+  - Document important information SILENTLY with updateConsultationNotes
   - Only offer support tools when truly appropriate and requested
+  - ALWAYS wait for user responses before continuing
   `;
 
   return sysPrompt.replace(/"/g, '\\"').replace(/\n/g, '\n');
@@ -163,7 +178,7 @@ const selectedTools: SelectedTool[] = [
   {
     temporaryTool: {
       modelToolName: "updateConsultationNotes",
-      description: "Document important information from the patient interaction. Use this tool regularly throughout the conversation to record symptoms, mood, key insights, and conversation progress. This is for documentation only and does not trigger any UI elements.",
+      description: "SILENT documentation tool. Use this to record patient information in the background WITHOUT interrupting conversation flow. This tool should be invisible to the user and never affect the conversation pace. Always wait for user responses after using this tool.",
       dynamicParameters: [
         {
           name: "consultationData",
@@ -238,7 +253,9 @@ const selectedTools: SelectedTool[] = [
           required: true
         }
       ],
-      client: {}
+      client: {},
+      // This is the key fix - set defaultReaction to make agent listen instead of speak
+      defaultReaction: "AGENT_REACTION_LISTENS"
     }
   },
   {
@@ -340,23 +357,22 @@ export const demoConfig = (userEmail: string): DemoConfig => ({
     languageHint: "en",
     selectedTools: selectedTools,
     voice: "Emily-English",
-    temperature: 0.1,  // Reduced temperature for more consistent, conservative responses
+    temperature: 0.1,  // Low temperature for consistent, conservative responses
     
-    // UNINTERRUPTIBLE CONFIGURATION - This makes the agent uninterruptible
+    // FIXED: Removed uninterruptible setting and improved VAD settings
     firstSpeakerSettings: {
       agent: {
-        uninterruptible: true,  // This prevents users from interrupting the agent
         text: "Hello! I'm Dr. Riya from Cadabams MindTalk. I'm here to support you with your mental health and well-being. How are you feeling today?",
-        delay: "1s"  // Optional: adds a small delay before the agent starts speaking
+        delay: "0.5s"  // Small delay before starting
       }
     },
     
-    // Additional VAD settings to reduce interruptions
+    // Improved VAD settings for better conversation flow
     vadSettings: {
-      turnEndpointDelay: "1s",  // Increased delay before agent responds (default is 0.384s)
-      minimumTurnDuration: "0.5s",  // Minimum user speech duration to be considered a turn
-      minimumInterruptionDuration: "1s",  // Increased threshold for interrupting the agent
-      frameActivationThreshold: 0.3  // Higher threshold for VAD to consider speech (0.1-1.0 range)
+      turnEndpointDelay: "2s",  // Longer delay before agent responds to ensure user is finished
+      minimumTurnDuration: "0.3s",  // Minimum user speech duration 
+      minimumInterruptionDuration: "2s",  // Higher threshold for interrupting
+      frameActivationThreshold: 0.4  // Higher threshold for detecting speech
     }
   }
 });
