@@ -4,23 +4,6 @@ function getSystemPrompt(userEmail: string = '') {
   const currentDate = new Date();
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
-  // Function to get correct date for any day of the week
-  function getCorrectDate(targetDayName: string) {
-    const dayIndex = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-      .findIndex(day => day === targetDayName.toLowerCase());
-    
-    if (dayIndex === -1) return null;
-    
-    const today = new Date();
-    const todayIndex = today.getDay();
-    const daysToAdd = (dayIndex - todayIndex + 7) % 7;
-    
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + daysToAdd);
-    
-    return targetDate;
-  }
-  
   let sysPrompt = `
   You are Dr. Riya, a warm and empathetic virtual psychologist/psychiatrist from Cadabams MindTalk – the digital mental health platform by Cadabams Group.
   Your role is to support users by helping them explore and understand their or their loved one's mental well-being in a compassionate and non-judgmental way.
@@ -63,15 +46,25 @@ function getSystemPrompt(userEmail: string = '') {
   - Use examples if helpful, but keep them brief.
 
   ## Guiding Next Steps
-  When the moment feels right, offer support options:
-  - *Assessment:* "Would you like to try a short mental health check?" - Use showAssessmentButton tool
-  - *Self-Paced Help:* "We have simple recovery tools. Should I show you one?" - Use showSelfHelpButton tool
-  - *Talk to a Professional:* "I can help you book a session with someone from our team." - Use showBookingButton tool
+  When the moment feels right, offer support options by mentioning them in your response:
+  - *Assessment:* "Would you like to try a short mental health assessment? I can guide you to one at consult.cadabams.com/assessment"
+  - *Self-Paced Help:* "We have simple recovery tools that might help. You can explore them at consult.cadabams.com/journey/all"
+  - *Talk to a Professional:* "I can help you book a session with someone from our team at consult.cadabams.com/doctors-list"
+
+  ## Important Information to Track
+  While talking, keep mental notes of:
+  - Any symptoms or concerns they mention (anxiety, depression, stress, sleep issues, etc.)
+  - How long they've been experiencing these issues
+  - What seems to trigger their concerns
+  - How it affects their daily life (work, relationships, activities)
+  - Their current mood and emotional state
+  - Any support they're seeking or interested in
 
   ## Outcome Focus
   - Always leave the user feeling heard, safe, and gently supported.
   - Keep their next step clear and manageable.
   - Be kind. Be slow. Use warmth over complexity.
+  - Focus on building trust and understanding rather than quick solutions.
 
   Current Date Information:
   Today is ${days[currentDate.getDay()]}, ${currentDate.toLocaleDateString('en-US', {
@@ -83,190 +76,14 @@ function getSystemPrompt(userEmail: string = '') {
   
   User Email: ${userEmail}
 
-  IMPORTANT: When offering next steps, use the appropriate tool to show buttons:
-  - For assessment: Call showAssessmentButton tool
-  - For booking: Call showBookingButton tool  
-  - For self-help: Call showSelfHelpButton tool
+  Remember: Your responses should be short, compassionate, and focused on understanding the user's mental health needs. Ask one question at a time and let them guide the conversation pace.
   `;
 
   return sysPrompt.replace(/"/g, '\\"').replace(/\n/g, '\n');
 }
 
-const selectedTools: SelectedTool[] = [
-  {
-    temporaryTool: {
-      modelToolName: "updateConsultation",
-      description: "Update consultation details including mental health symptoms and conversation progress",
-      dynamicParameters: [
-        {
-          name: "consultationData",
-          location: ParameterLocation.BODY,
-          schema: {
-            type: "object",
-            properties: {
-              symptoms: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    symptom: {
-                      type: "string",
-                      description: "Name of the reported mental health symptom or concern"
-                    },
-                    severity: {
-                      type: "string",
-                      description: "Severity level of the mental health symptom"
-                    },
-                    duration: {
-                      type: "string",
-                      description: "Duration of the mental health issue"
-                    }
-                  }
-                }
-              },
-              conversationStage: {
-                type: "string",
-                description: "Current stage of the conversation (greeting, exploration, support_offering, etc.)"
-              },
-              userMood: {
-                type: "string",
-                description: "Assessed mood or emotional state of the user"
-              },
-              supportOffered: {
-                type: "array",
-                items: {
-                  type: "string"
-                },
-                description: "Types of support offered (assessment, booking, self-help)"
-              }
-            },
-            required: ["conversationStage"]
-          },
-          required: true
-        }
-      ],
-      client: {
-        implementation: async (params: any) => {
-          return {
-            success: true,
-            consultationData: params.consultationData
-          };
-        }
-      }
-    }
-  },
-  {
-    temporaryTool: {
-      modelToolName: "showAssessmentButton",
-      description: "Show assessment button to user for mental health evaluation",
-      dynamicParameters: [
-        {
-          name: "buttonData",
-          location: ParameterLocation.BODY,
-          schema: {
-            type: "object",
-            properties: {
-              text: {
-                type: "string",
-                description: "Button text to display",
-                default: "Take Mental Health Assessment"
-              },
-              url: {
-                type: "string",
-                description: "Assessment URL",
-                default: "https://consult.cadabams.com/assessment"
-              }
-            }
-          },
-          required: true
-        }
-      ],
-      client: {
-        implementation: async (params: any) => {
-          return {
-            success: true,
-            buttonType: "assessment",
-            ...params.buttonData
-          };
-        }
-      }
-    }
-  },
-  {
-    temporaryTool: {
-      modelToolName: "showBookingButton",
-      description: "Show booking button to user for professional consultation",
-      dynamicParameters: [
-        {
-          name: "buttonData",
-          location: ParameterLocation.BODY,
-          schema: {
-            type: "object",
-            properties: {
-              text: {
-                type: "string",
-                description: "Button text to display",
-                default: "Book Session with Professional"
-              },
-              url: {
-                type: "string",
-                description: "Booking URL",
-                default: "https://consult.cadabams.com/doctors-list"
-              }
-            }
-          },
-          required: true
-        }
-      ],
-      client: {
-        implementation: async (params: any) => {
-          return {
-            success: true,
-            buttonType: "booking",
-            ...params.buttonData
-          };
-        }
-      }
-    }
-  },
-  {
-    temporaryTool: {
-      modelToolName: "showSelfHelpButton",
-      description: "Show self-help button to user for recovery tools and resources",
-      dynamicParameters: [
-        {
-          name: "buttonData",
-          location: ParameterLocation.BODY,
-          schema: {
-            type: "object",
-            properties: {
-              text: {
-                type: "string",
-                description: "Button text to display",
-                default: "Explore Self-Help Tools"
-              },
-              url: {
-                type: "string",
-                description: "Self-help URL",
-                default: "https://consult.cadabams.com/journey/all"
-              }
-            }
-          },
-          required: true
-        }
-      ],
-      client: {
-        implementation: async (params: any) => {
-          return {
-            success: true,
-            buttonType: "selfhelp",
-            ...params.buttonData
-          };
-        }
-      }
-    }
-  }
-];
+// No tools - simplified approach that works reliably
+const selectedTools: SelectedTool[] = [];
 
 export const demoConfig = (userEmail: string): DemoConfig => ({
   title: "Dr. Riya - Your Mental Health Specialist",
@@ -275,25 +92,25 @@ export const demoConfig = (userEmail: string): DemoConfig => ({
     systemPrompt: getSystemPrompt(userEmail),
     model: "fixie-ai/ultravox-70B",
     languageHint: "en",
-    selectedTools: selectedTools,
+    selectedTools: selectedTools, // No tools to avoid "tool failed" messages
     voice: "Emily-English",
     temperature: 0.3,
     
-    // UNINTERRUPTIBLE CONFIGURATION - This makes the agent uninterruptible
+    // UNINTERRUPTIBLE CONFIGURATION
     firstSpeakerSettings: {
       agent: {
-        uninterruptible: true,  // This prevents users from interrupting the agent
+        uninterruptible: true,
         text: "Hello! I'm Dr. Riya from Cadabams MindTalk. I'm here to support you with your mental health and well-being. How are you feeling today?",
-        delay: "1s"  // Optional: adds a small delay before the agent starts speaking
+        delay: "1s"
       }
     },
     
     // Additional VAD settings to reduce interruptions
     vadSettings: {
-      turnEndpointDelay: "1s",  // Increased delay before agent responds (default is 0.384s)
-      minimumTurnDuration: "0.5s",  // Minimum user speech duration to be considered a turn
-      minimumInterruptionDuration: "1s",  // Increased threshold for interrupting the agent
-      frameActivationThreshold: 0.3  // Higher threshold for VAD to consider speech (0.1-1.0 range)
+      turnEndpointDelay: "1s",
+      minimumTurnDuration: "0.5s",
+      minimumInterruptionDuration: "1s",
+      frameActivationThreshold: 0.3
     }
   }
 });
